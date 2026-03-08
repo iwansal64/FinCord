@@ -1,0 +1,16 @@
+@layer base, tailwindcss;
+
+@layer base {
+      * {
+            margin:0;
+            padding:0;
+            font-family:calibri;
+            color: #ECECEC;
+      }
+
+      body {
+            background-color: #121212;
+      }
+}
+
+@import "tailwindcss" layer(tailwindcss);
