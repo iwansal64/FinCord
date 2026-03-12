@@ -1,6 +1,12 @@
 @layer base, tailwindcss;
 
 @layer base {
+      :root {
+            --primary-color: #0B3F3B;
+            --secondary-color: #1F5C57;
+            --background-color: #121212;
+      }
+      
       * {
             margin:0;
             padding:0;
@@ -9,7 +15,7 @@
       }
 
       body {
-            background-color: #121212;
+            background-color: var(--background-color);
       }
 }
 
