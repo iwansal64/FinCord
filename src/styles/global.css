@@ -17,6 +17,7 @@
 @layer base {
       :root {
             --primary-color: #0B3F3B;
+            --primary-text-color: #26B1A0;
             --secondary-color: #1F5C57;
             --background-color: #121212;
       }
