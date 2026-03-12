@@ -1,5 +1,19 @@
 @layer base, tailwindcss;
 
+
+@font-face {
+      font-family: "Saira";
+      src:
+            url("/fonts/Saira/Saira-VariableFont_wdth,wght.ttf") format("truetype"),
+            url("/fonts/Saira/Saira-Italic-VariableFont_wdth,wght.ttf") format("truetype");
+      font-display: swap;
+      size-adjust: 88%;
+      ascent-override: 95%;
+      descent-override: 20%;
+      line-gap-override: 0%;
+}
+
+
 @layer base {
       :root {
             --primary-color: #0B3F3B;
@@ -10,7 +24,7 @@
       * {
             margin:0;
             padding:0;
-            font-family:calibri;
+            font-family: "Saira", calibri;
             color: #ECECEC;
       }
 
