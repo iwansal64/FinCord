@@ -1,6 +1,5 @@
 @layer base, tailwindcss;
 
-
 @font-face {
       font-family: "Saira";
       src:
@@ -13,24 +12,25 @@
       line-gap-override: 0%;
 }
 
-
 @layer base {
       :root {
-            --primary-color: #0B3F3B;
-            --primary-text-color: #26B1A0;
-            --secondary-color: #1F5C57;
+            --primary-color: #0b3f3b;
+            --primary-text-color: #26b1a0;
+            --secondary-color: #1f5c57;
             --background-color: #121212;
       }
-      
+
       * {
-            margin:0;
-            padding:0;
+            margin: 0;
+            padding: 0;
             font-family: "Saira", calibri;
-            color: #ECECEC;
+            color: #ececec;
       }
 
       body {
             background-color: var(--background-color);
+            overflow-y: auto;
+            overflow-x: hidden;
       }
 }
 

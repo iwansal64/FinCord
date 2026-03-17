@@ -4,7 +4,6 @@ import WaterDropAnimation from "../react/WaterDropAnimation";
 
 import ArrowImage from "../../assets/icons/arrow.svg";
 import LockImage from "../../assets/icons/lock.svg";
-
 ---
 
 <section id="hero" class="w-full h-screen flex justify-center items-center">
@@ -15,15 +14,32 @@ import LockImage from "../../assets/icons/lock.svg";
                   <p><b>FinCord 1.0</b> is here!</p>
             </div>
             <!-- Title -->
-            <h1 class="text-7xl mt-4 text-center font-bold">Track Your Money.<br /><span class="text-(--primary-text-color)">Retain Your <span class="text-transparent bg-clip-text bg-linear-to-r from-(--primary-text-color) to-(--primary-text-color)/50">Privacy</span>.</span></h1>
+            <h1 class="text-7xl mt-4 text-center font-bold">
+                  Track Your Money.<br /><span class="text-(--primary-text-color)"
+                        >Retain Your <span class="text-transparent bg-clip-text bg-linear-to-r from-(--primary-text-color) to-(--primary-text-color)/50">Privacy</span>.</span
+                  >
+            </h1>
             <!-- Subtitle -->
             <h2 class="text-xl mt-4 font-semibold">A simple way to record your cash flow, analyse the weak point, and create spending plan</h2>
             <!-- Actionable Buttons -->
             <div class="mt-8 flex flex-row gap-4 items-center justify-center text-md">
-                  <a href="/gate/signup" class="flex gap-2 justify-center items-center h-14 px-6 rounded-full bg-(--primary-color) shadow-[0_0_10px_#2f02] hover:shadow-[0_0_30px_#2f02] hover:brightness-110 duration-500">Start tracking with Sign Up <Image src={ArrowImage} alt="" width={25} /></a>
-                  <a href="/gate/local" class="flex gap-2 justify-center items-center h-14 px-6 border border-gray-500 rounded-full shadow-[0_0_10px_#2f02] hover:shadow-[0_0_30px_#2f02] hover:brightness-75 duration-500">Start tracking without Sign Up <Image src={LockImage} alt="" width={25} /></a>
+                  <a
+                        href="/gate/signup"
+                        class="flex gap-2 justify-center items-center h-14 px-6 rounded-full bg-(--primary-color) shadow-[0_0_10px_#2f02] hover:shadow-[0_0_30px_#2f02] hover:brightness-110 duration-500"
+                        >Start tracking with Sign Up <Image src={ArrowImage} alt="" width={25} /></a
+                  >
+                  <a
+                        href="/gate/local"
+                        class="flex gap-2 justify-center items-center h-14 px-6 border border-gray-500 rounded-full shadow-[0_0_10px_#2f02] hover:shadow-[0_0_30px_#2f02] hover:brightness-75 duration-500"
+                        >Start tracking without Sign Up <Image src={LockImage} alt="" width={25} /></a
+                  >
             </div>
             <!-- Additional Information -->
             <h3 class="mt-4 text-sm">Takes less than 10 seconds to get started. No need to prepare your credit card at all.</h3>
+      </div>
+      <div class="absolute top-0 left-0 w-screen h-screen -z-10 overflow-hidden">
+            <span class="absolute top-0 left-0 w-3/5 h-3/5 bg-radial from-green-700/20 to-transparent to-40% rounded-[50%]"></span>
+            <span class="absolute top-0 right-0 w-2/5 h-2/5 bg-radial from-green-700/20 to-transparent to-40% rounded-[50%]"></span>
+            <span class="absolute bottom-0 right-0 w-full h-4/5 bg-radial from-green-500/8 to-transparent to-40% rounded-[50%]"></span>
       </div>
 </section>
