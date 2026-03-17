@@ -2,18 +2,18 @@
 import { Image } from "astro:assets";
 
 import SecureLogo from "../../assets/icons/secure.svg";
-
-
 ---
 
-<nav class="fixed top-0 left-0 w-screen flex justify-center items-center" aria-label="Main Navigation">
+<nav class="fixed top-0 left-0 w-screen flex justify-center items-center bg-black/25 backdrop-blur-2xl z-100" aria-label="Main Navigation">
       <div class="py-8 w-4/5 h-full flex justify-between items-center">
             <div class="text-2xl font-semibold flex items-center gap-2">
                   <Image src={SecureLogo} alt="" width={50} />
                   <a href="/#">FinCord</a>
             </div>
             <div class="flex justify-center items-center">
-                  <ul class="flex flex-row gap-4 *:font-thin *:relative *:text-white *:after:content-[''] *:after:absolute *:after:bottom-0 *:hover:after:left-0 *:after:right-0 *:after:w-0 *:after:h-0.5 *:hover:after:w-full *:after:bg-white *:after:duration-250">
+                  <ul
+                        class="flex flex-row gap-4 *:font-thin *:relative *:text-white *:after:content-[''] *:after:absolute *:after:bottom-0 *:hover:after:left-0 *:after:right-0 *:after:w-0 *:after:h-0.5 *:hover:after:w-full *:after:bg-white *:after:duration-250"
+                  >
                         <li><a href="/#features">Features</a></li>
                         <li><a href="/#how-it-works">How it Works</a></li>
                         <li><a href="/#privacy">Privacy</a></li>
@@ -21,7 +21,10 @@ import SecureLogo from "../../assets/icons/secure.svg";
                   </ul>
             </div>
             <div class="flex justify-center items-center gap-4">
-                  <a href="/gate/login" class="flex justify-center items-center cursor-pointer w-24 py-2 px-4 rounded-full border-2 border-(--primary-color) hover:border-(--secondary-color) duration-250">Log In</a>
+                  <a
+                        href="/gate/login"
+                        class="flex justify-center items-center cursor-pointer w-24 py-2 px-4 rounded-full border-2 border-(--primary-color) hover:border-(--secondary-color) duration-250">Log In</a
+                  >
                   <a href="/gate/signup" class="flex justify-center items-center cursor-pointer w-24 py-2 px-4 rounded-full bg-(--primary-color) hover:bg-(--secondary-color) duration-250">Sign Up</a>
             </div>
       </div>
