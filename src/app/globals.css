@@ -24,5 +24,17 @@
                 background: var(--background);
                 color: var(--foreground);
                 font-family: var(--font-saira), Helvetica, sans-serif;
+                width: 100vw;
+                overflow: hidden auto;
+        }
+
+        ::-webkit-scrollbar {
+                background-color: black;
+                width: 2px;
+                height: 100%;
+        }
+
+        ::-webkit-scrollbar-thumb {
+                background-color: #fff;
         }
 }
