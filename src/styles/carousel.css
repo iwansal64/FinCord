@@ -1,0 +1,45 @@
+@keyframes CarouselTextAnimation {
+        0% {
+                left: -100%;
+                opacity: 0 !important;
+        }
+        78% {
+                left: -100%;
+                opacity: 0 !important;
+        }
+        80% {
+                left: 0;
+                opacity: 1 !important;
+        }
+        98% {
+                left: 0;
+                opacity: 1 !important;
+        }
+        100% {
+                left: 100%;
+                opacity: 0 !important;
+        }
+}
+
+@keyframes CarouselImageAnimation {
+        0% {
+                bottom: -100%;
+                opacity: 0 !important;
+        }
+        78% {
+                bottom: -100%;
+                opacity: 0 !important;
+        }
+        80% {
+                bottom: 8px;
+                opacity: 1 !important;
+        }
+        98% {
+                bottom: 8px;
+                opacity: 1 !important;
+        }
+        100% {
+                bottom: -100%;
+                opacity: 0 !important;
+        }
+}

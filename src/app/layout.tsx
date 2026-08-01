@@ -1,14 +1,9 @@
 import type { Metadata } from "next";
-import { Saira, Google_Sans } from "next/font/google";
+import { Saira } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Saira({
+const sairaFont = Saira({
         variable: "--font-saira",
-        subsets: ["latin"],
-});
-
-const geistMono = Google_Sans({
-        variable: "--font-google-sans",
         subsets: ["latin"],
 });
 
@@ -23,7 +18,7 @@ export default function RootLayout({
         children: React.ReactNode;
 }>) {
         return (
-                <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+                <html lang="en" className={`${sairaFont.variable} h-full antialiased`}>
                         <body className="min-h-full flex flex-col">{children}</body>
                 </html>
         );
