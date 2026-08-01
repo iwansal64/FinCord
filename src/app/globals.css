@@ -37,4 +37,8 @@
         ::-webkit-scrollbar-thumb {
                 background-color: #fff;
         }
+
+        button {
+                cursor: pointer;
+        }
 }

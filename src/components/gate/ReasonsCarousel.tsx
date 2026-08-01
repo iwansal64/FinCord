@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { appear_time_each_reason_card, reasons, ReasonType } from "@/utils/carousel_reasons_data";
+import PauseReasonCarouselButton from "./PauseReasonCarouselButton";
 
 export default function ReasonsCarousel() {
         return (
@@ -12,6 +13,7 @@ export default function ReasonsCarousel() {
                                         </li>
                                 ))}
                         </ul>
+                        <PauseReasonCarouselButton />
                 </>
         );
 }
@@ -20,7 +22,7 @@ function ReasonCard(props: { reason: ReasonType; index: number }) {
         return (
                 <div className="w-full h-full p-10 box-border relative flex flex-col items-center text-center *:max-w-124 *:text-black overflow-hidden pointer-events-none">
                         <h1
-                                className="text-3xl font-semibold relative"
+                                className="carousel text-3xl font-semibold relative"
                                 style={{
                                         animationName: "CarouselTextAnimation",
                                         animationIterationCount: "infinite",
@@ -34,7 +36,7 @@ function ReasonCard(props: { reason: ReasonType; index: number }) {
                                 <>
                                         <span className="my-4"></span>
                                         <p
-                                                className="text-lg italic relative"
+                                                className="carousel text-lg italic relative"
                                                 style={{
                                                         animationName: "CarouselTextAnimation",
                                                         animationIterationCount: "infinite",
@@ -49,7 +51,7 @@ function ReasonCard(props: { reason: ReasonType; index: number }) {
                         <span className="my-4"></span>
                         {props.reason.descriptions.map((desc, index) => (
                                 <p
-                                        className="text-sm relative"
+                                        className="carousel text-sm relative"
                                         key={index}
                                         style={{
                                                 animationName: "CarouselTextAnimation",
@@ -63,7 +65,7 @@ function ReasonCard(props: { reason: ReasonType; index: number }) {
                         ))}
                         <Image
                                 src={props.reason.image}
-                                className="absolute bottom-2 left-1/2 -translate-x-1/2"
+                                className="carousel absolute bottom-2 left-1/2 -translate-x-1/2"
                                 width={450}
                                 alt="Mobile Payment Image"
                                 style={{

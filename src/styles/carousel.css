@@ -34,8 +34,32 @@
                 bottom: 8px;
                 opacity: 1 !important;
         }
-        98% {
+        82% {
+                bottom: 20px;
+        }
+        84% {
                 bottom: 8px;
+        }
+        86% {
+                bottom: 20px;
+        }
+        88% {
+                bottom: 8px;
+        }
+        90% {
+                bottom: 20px;
+        }
+        92% {
+                bottom: 8px;
+        }
+        94% {
+                bottom: 20px;
+        }
+        96% {
+                bottom: 8px;
+        }
+        98% {
+                bottom: 20px;
                 opacity: 1 !important;
         }
         100% {
