@@ -6,7 +6,7 @@ export default function SignPage() {
         return (
                 <>
                         <div className="w-screen h-screen grid grid-cols-2">
-                                <div className="flex justify-center items-center">
+                                <div className="relative flex justify-center items-center">
                                         <SignForm />
                                 </div>
                                 <div className="relative flex justify-center items-center bg-[#eee]">
