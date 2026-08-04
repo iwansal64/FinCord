@@ -32,3 +32,4 @@ trust-dns-resolver = "0.23.2"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["json", "env-filter"] }
 either = "1.17.0"
+password-hash = "0.6.1"

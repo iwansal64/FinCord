@@ -8,9 +8,10 @@ pub struct Model {
         #[sea_orm(primary_key)]
         pub id: i32,
         pub name: String,
-        pub created_at: Json,
+        pub created_at: DateTimeWithTimeZone,
         #[sea_orm(unique)]
         pub session_token: Uuid,
+        pub password: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

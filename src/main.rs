@@ -5,7 +5,9 @@ mod utils;
 use actix_web::{App, HttpServer, web};
 use sea_orm::DatabaseConnection;
 
-use crate::routes::usergate::{register::user_signup, verification::user_verify};
+use crate::routes::usergate::{
+        creation::user_create, register::user_signup, verification::user_verify,
+};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -30,6 +32,7 @@ async fn main() -> std::io::Result<()> {
                         .app_data(web::Data::new(mailer.clone()))
                         .service(user_signup)
                         .service(user_verify)
+                        .service(user_create)
         })
         .bind(("127.0.0.1", 8080))?
         .run()
