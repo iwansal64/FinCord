@@ -17,8 +17,8 @@ export default function SignForm() {
                                 <p className="text-md font-thin">Register before you use our online system</p>
                         </div>
                         <span className="my-2"></span>
-                        <form action="" className="flex flex-col items-center justify-center gap-4" onSubmit={SubmitForm}>
-                                <div className="flex flex-col">
+                        <form action="" className="flex flex-col items-center justify-center gap-4 w-full h-full" onSubmit={SubmitForm}>
+                                <div className="flex flex-col w-full h-full">
                                         <label htmlFor="email">Email Address</label>
                                         <span className="my-1"></span>
                                         <input

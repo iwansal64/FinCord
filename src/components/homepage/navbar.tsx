@@ -34,7 +34,7 @@ export default function Navbar() {
                         </div>
                         <ul className="flex h-full justify-self-end justify-center items-center gap-4">
                                 <li className="relative w-28 h-10 bg-black text-white text-center rounded-none">
-                                        <a href="/gate/sign" className="absolute top-0 left-0 w-full h-full flex flex-row gap-1.5 items-center justify-center">
+                                        <a href="/gate/register" className="absolute top-0 left-0 w-full h-full flex flex-row gap-1.5 items-center justify-center">
                                                 <LogIn width={15} />
                                                 Sign In
                                         </a>

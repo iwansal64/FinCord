@@ -1,4 +1,4 @@
-import SignForm from "@/components/gate/sign/SignForm";
+import SignForm from "@/components/gate/register/SignForm";
 import ReasonsCarousel from "@/components/gate/ReasonsCarousel";
 import "@/styles/carousel.css";
 
