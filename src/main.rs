@@ -6,7 +6,7 @@ use actix_web::{App, HttpServer, web};
 use sea_orm::DatabaseConnection;
 
 use crate::routes::usergate::{
-        creation::user_create, register::user_signup, verification::user_verify,
+        creation::user_create, login::user_login, register::user_signup, verification::user_verify,
 };
 
 #[actix_web::main]
@@ -33,6 +33,7 @@ async fn main() -> std::io::Result<()> {
                         .service(user_signup)
                         .service(user_verify)
                         .service(user_create)
+                        .service(user_login)
         })
         .bind(("127.0.0.1", 8080))?
         .run()

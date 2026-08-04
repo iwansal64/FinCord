@@ -63,7 +63,8 @@ pub async fn user_create(
         // ? If verified, set create user account
         let generated_session_token = Uuid::new_v4();
         let user_data = users::ActiveModel {
-                name: ActiveValue::Set(data.username.clone()),
+                email: ActiveValue::Set(data.email.clone()),
+                username: ActiveValue::Set(data.username.clone()),
                 password: ActiveValue::Set(data.password.clone()),
                 session_token: ActiveValue::Set(generated_session_token),
                 ..Default::default()
