@@ -1,9 +1,10 @@
 use actix_web::{HttpResponse, post, web};
 use entity::registration_entries;
+use migration::OnConflict;
 use sea_orm::{
         ActiveModelTrait,
         ActiveValue::{NotSet, Set},
-        DatabaseConnection,
+        DatabaseConnection, EntityTrait,
 };
 use serde::Deserialize;
 use validator::Validate;
@@ -29,7 +30,7 @@ pub async fn user_signup(
         match data.validate() {
                 Ok(_) => (),
                 Err(err) => {
-                        tracing::error!(
+                        tracing::warn!(
                                 "Failed to validate data using validator. Error: {}",
                                 err.to_string()
                         );
@@ -54,14 +55,24 @@ pub async fn user_signup(
         let token: String = generate_token();
 
         // ? Save it to the database
-        let new_registration_entry = registration_entries::ActiveModel {
-                id: NotSet,
-                email: Set(data.email.clone()),
-                token: Set(token.clone()),
-                ..Default::default()
-        };
-        let new_registration_entry = match new_registration_entry.save(db.get_ref()).await {
-                Ok(data) => data,
+        let new_registration_entry: registration_entries::ActiveModel =
+                registration_entries::ActiveModel {
+                        id: NotSet,
+                        email: Set(data.email.clone()),
+                        token: Set(token.clone()),
+                        ..Default::default()
+                };
+
+        let on_conflict = OnConflict::column(registration_entries::Column::Email)
+                .update_column(registration_entries::Column::Token)
+                .to_owned();
+
+        match registration_entries::Entity::insert(new_registration_entry.clone())
+                .on_conflict(on_conflict)
+                .exec(db.get_ref())
+                .await
+        {
+                Ok(_) => (),
                 Err(err) => {
                         tracing::error!(
                                 "Failed to create registration entry. Error: {}",
