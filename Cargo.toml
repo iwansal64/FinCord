@@ -20,7 +20,7 @@ serde_json = { workspace = true }
 sqlx = { workspace = true }
 tokio = { version = "1", features = ["full"] }
 dotenvy = "0.15"
-lettre = { version = "0.11.22", features = ["tokio1", "tokio1-native-tls", "smtp-transport"] }
+lettre = { version = "0.11.23", features = ["tokio1", "tokio1-native-tls", "smtp-transport", "builder"] }
 chrono = { workspace = true }
 rand = "0.10.2"
 hickory-resolver = "0.26.1"

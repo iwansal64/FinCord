@@ -1,6 +1,7 @@
 use chrono::{Datelike, Local};
 use lettre::{
-        AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor, message::header::ContentType,
+        AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
+        message::{SinglePart, header::ContentType},
         transport::smtp::authentication::Credentials,
 };
 use std::env;
@@ -43,19 +44,19 @@ pub async fn send_verification_email(
         let current_year: i32 = Local::now().year();
 
         let email_message: String = format!(
-            "<div style=\"font-family: Arial, sans-serif; color: #333; padding-top: 48px; padding-bottom: 48px; background-color: #ccc\">
-        <div style=\"background-color: #111; max-width: 480px; padding: 24px; margin: auto; border-radius: 8px; color: #f4f4f4\">
+                r#"<div style="font-family: Arial, sans-serif; color: #333; padding-top: 48px; padding-bottom: 48px; background-color: #ccc">
+        <div style="background-color: #111; max-width: 480px; padding: 24px; margin: auto; border-radius: 8px; color: #f4f4f4">
           <h2>Verify your email</h2>
           <p>We, FinCord team, welcome you to use our system!</p>
           <p>Thanks for signing up for <strong>FinCord</strong>! Please, confirm your email address by using the token below or use this link instead: {verify_link}</p>
-          <div style=\"font-size: 28px; font-weight: bold; letter-spacing: 5px; background: #fff2; padding: 16px; text-align: center; border-radius: 8px; margin: 20px 0;\">
+          <div style="font-size: 28px; font-weight: bold; letter-spacing: 5px; background: #fff2; padding: 16px; text-align: center; border-radius: 8px; margin: 20px 0;">
             {token}
           </div>
           <p>If you didn't request this, you can safely ignore this message.</p>
-          <hr style=\"margin-top: 24px;\">
-          <p style=\"font-size: 12px; color: #888;\">© {current_year} FinCord. All rights reserved.</p>
+          <hr style="margin-top: 24px;">
+          <p style="font-size: 12px; color: #888;">© {current_year} FinCord. All rights reserved.</p>
         </div>
-      </div>"
+      </div>"#
         );
 
         let mail_box_from: lettre::message::Mailbox = match "FinCord Team <iwantest64@gmail.com>"
@@ -84,8 +85,8 @@ pub async fn send_verification_email(
                 .from(mail_box_from)
                 .to(mail_box_to)
                 .subject("Action Required: FinCord Account Registration Confirmation")
-                .header(ContentType::TEXT_PLAIN)
-                .body(email_message);
+                .header(ContentType::TEXT_HTML)
+                .singlepart(SinglePart::html(email_message));
 
         let email = match email_unsafe {
                 Ok(message) => message,
