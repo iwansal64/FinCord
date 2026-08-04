@@ -1,56 +1,46 @@
-use actix_web::{
-        Either::{Left, Right},
-        HttpResponse,
-        cookie::Cookie,
-        post, web,
-};
+use actix_web::{HttpResponse, cookie::Cookie, post, web};
 use entity::users;
 use sea_orm::{
         ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DbErr, EntityTrait,
         QueryFilter, prelude::Uuid,
 };
 use serde::Deserialize;
-use validator::Validate;
 
-#[derive(Deserialize, Validate)]
-struct LoginDataUsingEmail {
-        #[validate(email)]
-        email: String,
+use crate::utils::mail_util::verify_email;
+
+#[derive(Deserialize)]
+struct LoginData {
+        email_or_username: String,
         password: String,
 }
 
-#[derive(Deserialize)]
-struct LoginDataUsingUsername {
-        username: String,
-        password: String,
+enum UsernameOrEmail<'a> {
+        Username(&'a str),
+        Email(&'a str),
 }
 
 #[post("/user/login")]
 pub async fn user_login(
         db: web::Data<DatabaseConnection>,
-        data: actix_web::Either<web::Json<LoginDataUsingEmail>, web::Json<LoginDataUsingUsername>>,
+        data: web::Json<LoginData>,
 ) -> HttpResponse {
-        // ? Validate data
-        if let Left(data) = &data {
-                match data.validate() {
-                        Ok(_) => (),
-                        Err(err) => {
-                                tracing::warn!(
-                                        "Failed to validate data using validator. Error: {}",
-                                        err.to_string()
-                                );
-                                return HttpResponse::BadRequest().finish();
-                        }
+        // ? Verify if it's username or email
+        let email_or_username: UsernameOrEmail = match verify_email(&data.email_or_username).await {
+                Ok(result) => match result {
+                        true => UsernameOrEmail::Email(&data.email_or_username),
+                        false => UsernameOrEmail::Username(&data.email_or_username),
+                },
+                Err(err_str) => {
+                        tracing::error!("Failed to verify email address. Error: {err_str}");
+                        return HttpResponse::InternalServerError().finish();
                 }
-        }
+        };
 
         // ? Verify user and password from the database
         let user_data_result: Result<Option<users::Model>, DbErr> = users::Entity::find()
-                .filter(match &data {
-                        Left(data_using_email) => users::Column::Email.eq(&data_using_email.email),
-                        Right(data_using_username) => {
-                                users::Column::Username.eq(&data_using_username.username)
-                        }
+                .filter(match email_or_username {
+                        UsernameOrEmail::Username(username) => users::Column::Username.eq(username),
+                        UsernameOrEmail::Email(email) => users::Column::Email.eq(email),
                 })
                 .one(db.get_ref())
                 .await;
@@ -71,12 +61,7 @@ pub async fn user_login(
                 }
         };
 
-        let data_password = match &data {
-                Left(data) => &data.password,
-                Right(data) => &data.password,
-        };
-
-        if data_password.as_str() != user_data.password {
+        if data.password.as_str() != user_data.password {
                 return HttpResponse::Unauthorized().finish();
         }
 
