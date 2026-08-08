@@ -1,6 +1,11 @@
 import LoginForm from "@/components/gate/login/LoginForm";
 import ReasonsCarousel from "@/components/gate/ReasonsCarousel";
 import "@/styles/carousel.css";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+        title: "FinCord - Login"
+};
 
 export default function LoginPage() {
         return (

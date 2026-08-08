@@ -1,6 +1,11 @@
 import SignForm from "@/components/gate/register/SignForm";
 import ReasonsCarousel from "@/components/gate/ReasonsCarousel";
 import "@/styles/carousel.css";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+        title: "FinCord - Register"
+};
 
 export default function SignPage() {
         return (
