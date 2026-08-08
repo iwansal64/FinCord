@@ -1,3 +1,5 @@
+import { number_with_currency } from "@/utils/currency_util";
+
 export default function RecentRecords() {
 
         return <div className="p-8 grid grid-flow-row auto-rows-36 gap-4 overflow-auto" style={{
@@ -24,7 +26,7 @@ function Record({ title, date, income, currency }: {
                         <p className="text-sm text-gray-300">{date.toLocaleDateString()}</p>
                 </div>
                 <div className="w-full h-full flex justify-center items-center">
-                        <p className="text-4xl">{income > 0 ? `${currency}${income}` : `-${currency}${-income}`}</p>
+                        <p className="text-4xl">{number_with_currency(income, currency)}</p>
                 </div>
         </div>;
 }
