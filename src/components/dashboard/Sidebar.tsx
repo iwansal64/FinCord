@@ -1,11 +1,14 @@
-import { Book, LogOutIcon, Settings, User } from "lucide-react";
+import { Book, LayoutDashboard, LogOutIcon, Settings, User } from "lucide-react";
 
 export default function Sidebar({ active_tab }: { active_tab: string }) {
 
         return <nav className="p-4 w-max border border-white rounded-full flex flex-col">
                 <ul className="flex flex-col gap-2 h-full">
+                        <li className={`cursor-pointer flex justify-center items-center rounded-full border border-white p-4 ${active_tab == "profile" && "bg-gray-500"}`}>
+                                <a href="./profile"><User width={25} height={25} /></a>
+                        </li>
                         <li className={`cursor-pointer flex justify-center items-center rounded-full border border-white p-4 ${active_tab == "stats" && "bg-gray-500"}`}>
-                                <a href="./stats"><User width={25} height={25} /></a>
+                                <a href="./stats"><LayoutDashboard width={25} height={25} /></a>
                         </li>
                         <li className={`cursor-pointer flex justify-center items-center rounded-full border border-white p-4 ${active_tab == "entry" && "bg-gray-500"}`}>
                                 <a href="./entry"><Book width={25} height={25} /></a>
