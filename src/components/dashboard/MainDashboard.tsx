@@ -1,9 +1,9 @@
-import CashflowGraph from "./main/CashFlowGraph";
-import Chatbot from "./main/Chatbot";
-import Insights from "./main/Insights";
-import RecentRecords from "./main/RecentRecords";
-import TrackedIncome from "./main/TrackedIncome";
-import TrackedOutcome from "./main/TrackedOutcome";
+import CashflowGraph from "./stats/CashFlowGraph";
+import Chatbot from "./stats/Chatbot";
+import Insights from "./stats/Insights";
+import RecentRecords from "./stats/RecentRecords";
+import TrackedIncome from "./stats/TrackedIncome";
+import TrackedOutcome from "./stats/TrackedOutcome";
 
 export default function MainDashboard() {
 
