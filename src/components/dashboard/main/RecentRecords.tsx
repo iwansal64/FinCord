@@ -20,7 +20,7 @@ function Record({ title, date, income, currency }: {
         income: number,
         currency: string
 }) {
-        return <div className="w-full flex flex-col p-4 border border-white rounded-2xl">
+        return <div className="w-full flex flex-col p-4 bg-gray-800 border border-white rounded-2xl">
                 <div className="flex flex-row justify-between">
                         <p className="text-lg">{title}</p>
                         <p className="text-sm text-gray-300">{date.toLocaleDateString()}</p>

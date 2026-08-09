@@ -4,6 +4,8 @@ import { ChartData, Chart as ChartJS, CategoryScale, LinearScale, PointElement, 
 import { Chart } from "react-chartjs-2";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement);
+ChartJS.defaults.color = "white";
+ChartJS.defaults.scale.grid.color = "rgba(255, 255, 255, 0.2)";
 
 export const options = {
         responsive: true,
@@ -37,9 +39,9 @@ const data: ChartData = {
 
 export default function CashflowGraph() {
 
-        return <div className="p-4" style={{
+        return <div className="p-6" style={{
                 gridArea: "gr"
         }}>
-                <Chart type="bar" data={data} options={options} className="w-full h-full" />
+                <Chart type="bar" data={data} options={options} className="w-full h-full border border-white bg-gray-700 p-4 rounded-2xl" />
         </div>;
 }

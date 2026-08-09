@@ -20,7 +20,7 @@ export default function Chatbot() {
                 </div>
                 {/* Message Input */}
                 <div className="w-full p-2">
-                        <input type="text" className="p-2 rounded-2xl w-full h-full bg-gray-600" />
+                        <input type="text" className="p-2 rounded-2xl w-full h-full bg-gray-800 border border-white" placeholder="Type messages.." />
                 </div>
         </div>;
 }
