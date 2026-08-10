@@ -41,12 +41,16 @@ export default function UseUserDataHookEffect() {
                                 return;
                         }
 
-                        if (data.status != 200) {
+                        if (data.status == 401) {
                                 // Show unauthenticated
                                 window.location.href = "/gate/login";
                                 return;
                         }
 
+                        if (data.status != 200) {
+                                // Show there's server error
+                                return;
+                        }
 
                         data.json().then(possibly_user_data => {
                                 const user_data = get_user_data_from_object(possibly_user_data);
