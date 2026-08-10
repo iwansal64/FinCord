@@ -2,9 +2,7 @@ import { number_with_currency } from "@/utils/currency_util";
 
 export default function RecentRecords() {
 
-        return <div className="p-8 grid grid-flow-row auto-rows-36 gap-4 overflow-auto" style={{
-                gridArea: "rcd"
-        }}>
+        return <div className="p-8 grid grid-flow-row auto-rows-36 gap-4 overflow-auto" id="recent-records-component">
                 <Record title="Dinner with friends" date={new Date()} income={15} currency="$" />
                 <Record title="Buy a new phone" date={new Date()} income={-2000} currency="$" />
                 <Record title="Work 24 hours" date={new Date()} income={5200} currency="$" />

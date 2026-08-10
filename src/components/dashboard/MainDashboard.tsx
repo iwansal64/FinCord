@@ -1,3 +1,5 @@
+import "@/styles/main_dashboard.css";
+
 import CashflowGraph from "./stats/CashFlowGraph";
 import Chatbot from "./stats/Chatbot";
 import Insights from "./stats/Insights";
@@ -7,14 +9,12 @@ import TrackedOutcome from "./stats/TrackedOutcome";
 
 export default function MainDashboard() {
 
-        return <div className="w-full h-full grid grid-cols-3 grid-rows-3 gap-8 *:border *:border-white *:rounded-2xl" style={{
-                gridTemplateAreas: `"rcd ti to" "rcd gr gr" "cb ins ins"`
-        }}>
-                <RecentRecords />
+        return <div className="w-full h-full grid gap-8 *:border *:border-white *:rounded-2xl" id="main-dashboard">
+                <Chatbot />
                 <TrackedIncome />
                 <TrackedOutcome />
+                <RecentRecords />
                 <CashflowGraph />
-                <Chatbot />
                 <Insights />
         </div>;
 }

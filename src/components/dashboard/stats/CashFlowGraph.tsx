@@ -39,9 +39,7 @@ const data: ChartData = {
 
 export default function CashflowGraph() {
 
-        return <div className="p-6" style={{
-                gridArea: "gr"
-        }}>
+        return <div className="p-6" id="cashflow-graph">
                 <Chart type="bar" data={data} options={options} className="w-full h-full border border-white bg-gray-700 p-4 rounded-2xl" />
         </div>;
 }

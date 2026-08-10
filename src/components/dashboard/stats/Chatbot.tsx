@@ -1,8 +1,6 @@
 export default function Chatbot() {
 
-        return <div className="flex flex-col" style={{
-                gridArea: "cb"
-        }}>
+        return <div className="flex flex-col" id="chatbot">
                 {/* Title */}
                 <div className="py-2 text-center w-full">
                         AI ChatBot
