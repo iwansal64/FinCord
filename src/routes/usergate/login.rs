@@ -1,4 +1,8 @@
-use actix_web::{HttpResponse, cookie::Cookie, post, web};
+use actix_web::{
+        HttpResponse,
+        cookie::{Cookie, time::Duration},
+        post, web,
+};
 use entity::users;
 use sea_orm::{
         ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DbErr, EntityTrait,
@@ -54,7 +58,7 @@ pub async fn user_login(
                 },
                 Err(err) => {
                         tracing::error!(
-                                "There's an error when trying to get registration entry from database. Error: {}",
+                                "There's an error when trying to get user data from database. Error: {}",
                                 err.to_string()
                         );
                         return HttpResponse::InternalServerError().finish();
@@ -89,6 +93,7 @@ pub async fn user_login(
                         .secure(std::env::var("DEV").is_err())
                         .http_only(true)
                         .same_site(actix_web::cookie::SameSite::Lax)
+                        .max_age(Duration::hours(24))
                         .finish();
 
         // ? Return success with cookie
