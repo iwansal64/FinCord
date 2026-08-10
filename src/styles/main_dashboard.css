@@ -1,0 +1,45 @@
+#main-dashboard {
+        grid-template-areas: "rcd ti to"
+                             "cb gr gr"
+                             "cb ins ins";
+        grid-template-columns: repeat(3, 30%);
+        grid-template-rows: repeat(3, 30%);
+        place-content: center;
+}
+
+#recent-records-component {
+        grid-area: rcd;
+}
+
+#tracked-income {
+        grid-area: ti;
+}
+
+#tracked-outcome {
+        grid-area: to;
+}
+
+#cashflow-graph {
+        grid-area: gr;
+}
+
+#chatbot {
+        grid-area: cb;
+}
+
+#insight {
+        grid-area: ins;
+}
+
+@media (max-width: 1000px) {
+        #main-dashboard {
+                grid-template-areas: "cb cb"
+                                     "ti to"
+                                     "rcd rcd"
+                                     "gr gr"
+                                     "ins ins";
+                grid-template-columns: repeat(2, 1fr);
+                grid-template-rows: repeat(5, 300px);
+                place-content: start;
+        }
+}

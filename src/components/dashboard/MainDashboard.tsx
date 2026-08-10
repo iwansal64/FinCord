@@ -9,7 +9,7 @@ import TrackedOutcome from "./stats/TrackedOutcome";
 
 export default function MainDashboard() {
 
-        return <div className="w-full h-full grid gap-8 *:border *:border-white *:rounded-2xl" id="main-dashboard">
+        return <div className="w-full h-full grid gap-8 overflow-auto *:border *:border-white *:rounded-2xl" id="main-dashboard">
                 <Chatbot />
                 <TrackedIncome />
                 <TrackedOutcome />
