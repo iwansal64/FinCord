@@ -1,9 +1,10 @@
 'use client';
-import { get_user_data_from_object, useUserDataHook } from "@/hooks/useUserData";
+
 import { useVerifyAPI } from "@/utils/api_interface";
+import { get_user_data_from_object, useUserDataHook } from "./useUserData";
 import { useEffect } from "react";
 
-export default function VerifyLoggedIn() {
+export default function UseUserDataHookEffect() {
         const { trigger, data, error } = useVerifyAPI();
         const { setUserData } = useUserDataHook();
 
@@ -20,7 +21,12 @@ export default function VerifyLoggedIn() {
 
                 try {
                         const user_data_from_stored_session_data = get_user_data_from_object(JSON.parse(stored_user_data_from_session_storage));
-                        setUserData(user_data_from_stored_session_data);
+                        if (user_data_from_stored_session_data) {
+                                setUserData(user_data_from_stored_session_data);
+                                return;
+                        }
+
+                        throw Error();
                 }
                 catch {
                         sessionStorage.removeItem("userdata");
