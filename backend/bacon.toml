@@ -1,0 +1,8 @@
+default_job = "run"
+
+[jobs.run]
+command = ["cargo", "run"]
+watch = ["src", "Cargo.toml"]
+
+[watcher]
+poll = true

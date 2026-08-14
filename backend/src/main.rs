@@ -53,7 +53,7 @@ async fn main() -> std::io::Result<()> {
                         .service(user_login)
                         .service(verify_logged_user)
         })
-        .bind(("127.0.0.1", 8080))?
+        .bind(("0.0.0.0", 8080))?
         .run()
         .await
 }
