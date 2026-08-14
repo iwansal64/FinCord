@@ -1,23 +1,29 @@
-use actix_web::{HttpRequest, HttpResponse, post, web};
+use actix_web::{HttpRequest, HttpResponse, get, web};
 use sea_orm::DatabaseConnection;
 use serde::Serialize;
 
-use crate::db_interfaces::user_db_interface::{
-        PartialUser, UnverifiedReasons, VerificationResult, verify_user_by_req,
+use crate::db_interfaces::{
+        transaction_records_db_interface::{
+                GetTransactionRecordsResult, PartialTransactionRecords,
+                get_transaction_records_by_user_id,
+        },
+        user_db_interface::{
+                PartialUser, UnverifiedReasons, VerificationResult, verify_user_by_req,
+        },
 };
 
 #[derive(Serialize)]
 struct ResponseData {
         error_message: Option<String>,
-        user_data: Option<PartialUser>,
+        records_data: Option<Vec<PartialTransactionRecords>>,
 }
 
-#[post("/user/verify")]
-pub async fn verify_logged_user(
+#[get("/records")]
+pub async fn get_transaction_records(
         req: HttpRequest,
         db: web::Data<DatabaseConnection>,
 ) -> HttpResponse {
-        // ? Get the user data if it exists
+        // ? Verify if it's authenticated user
         let user_data: PartialUser = match verify_user_by_req(req, db.get_ref()).await {
                 VerificationResult::Verified(data) => data,
                 VerificationResult::Unverified(reason) => {
@@ -31,7 +37,7 @@ pub async fn verify_logged_user(
 
                         return HttpResponse::Unauthorized().json(ResponseData {
                                 error_message: Some(message.to_string()),
-                                user_data: None,
+                                records_data: None,
                         });
                 }
                 VerificationResult::Err(err) => {
@@ -43,8 +49,25 @@ pub async fn verify_logged_user(
                 }
         };
 
+        // ? Get user records
+        let user_records: Vec<PartialTransactionRecords> = match get_transaction_records_by_user_id(
+                &user_data.id,
+                db.get_ref(),
+        )
+        .await
+        {
+                GetTransactionRecordsResult::Success(data) => data,
+                GetTransactionRecordsResult::Err(err) => {
+                        tracing::error!(
+                                "There's an error when trying to get record data from database. Error: {}",
+                                err
+                        );
+                        return HttpResponse::InternalServerError().finish();
+                }
+        };
+
         HttpResponse::Ok().json(ResponseData {
                 error_message: None,
-                user_data: Some(user_data),
+                records_data: Some(user_records),
         })
 }

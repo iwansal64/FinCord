@@ -1,3 +1,4 @@
+mod db_interfaces;
 mod initializer;
 mod routes;
 mod utils;
@@ -7,7 +8,7 @@ use actix_web::{App, HttpServer, http, web};
 use sea_orm::DatabaseConnection;
 
 use crate::routes::{
-        loggeduser::verify::verify_logged_user,
+        loggeduser::{records::get_transaction_records, verify::verify_logged_user},
         usergate::{
                 creation::user_create, login::user_login, register::user_signup,
                 verification::user_verify,
@@ -52,6 +53,7 @@ async fn main() -> std::io::Result<()> {
                         .service(user_create)
                         .service(user_login)
                         .service(verify_logged_user)
+                        .service(get_transaction_records)
         })
         .bind(("0.0.0.0", 8080))?
         .run()
