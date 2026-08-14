@@ -31,11 +31,11 @@ pub async fn send_verification_email(
         to_email: &str,
         token: &str,
 ) -> Result<(), either::Either<lettre::transport::smtp::Error, String>> {
-        let base_url: String = match env::var("BASE_URL") {
+        let base_url: String = match env::var("FRONTEND_BASE_URL") {
                 Ok(url) => url,
                 Err(_) => {
                         return Err(either::Either::Right(String::from(
-                                "BASE_URL is not set! Please set it in .env!",
+                                "FRONTEND_BASE_URL is not set! Please set it in .env!",
                         )));
                 }
         };
