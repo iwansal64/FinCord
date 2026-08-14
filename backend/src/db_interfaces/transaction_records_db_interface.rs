@@ -1,7 +1,8 @@
+use chrono::{FixedOffset, Utc};
 use entity::{transaction_records, users};
 use sea_orm::{
-        ColumnTrait, DatabaseConnection, EntityTrait, FromQueryResult, QuerySelect,
-        prelude::DateTimeWithTimeZone,
+        ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait,
+        FromQueryResult, QuerySelect, prelude::DateTimeWithTimeZone,
 };
 use serde::Serialize;
 
@@ -42,5 +43,36 @@ pub async fn get_transaction_records_by_user_id(
         match records {
                 Ok(data) => GetTransactionRecordsResult::Success(data),
                 Err(err) => GetTransactionRecordsResult::Err(err.to_string()),
+        }
+}
+
+pub enum CreateTransactionRecordResult {
+        Success,
+        Err(String),
+}
+
+pub async fn create_transaction_records(
+        user_id: i32,
+        title: String,
+        description: String,
+        amount: i64,
+        db: &DatabaseConnection,
+) -> CreateTransactionRecordResult {
+        let transaction_record: transaction_records::ActiveModel =
+                transaction_records::ActiveModel {
+                        creator_id: ActiveValue::Set(user_id),
+                        title: ActiveValue::Set(title),
+                        description: ActiveValue::Set(description),
+                        amount: ActiveValue::Set(amount),
+                        created_at: ActiveValue::Set(
+                                Utc::now().with_timezone(&FixedOffset::east_opt(0).unwrap()),
+                        ),
+                        is_income: ActiveValue::Set(amount > 0),
+                        ..Default::default()
+                };
+
+        match transaction_record.save(db).await {
+                Ok(_) => CreateTransactionRecordResult::Success,
+                Err(err) => CreateTransactionRecordResult::Err(err.to_string()),
         }
 }

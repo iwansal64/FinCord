@@ -1,10 +1,11 @@
-use actix_web::{HttpRequest, HttpResponse, get, web};
+use actix_web::{HttpRequest, HttpResponse, get, post, web};
 use sea_orm::DatabaseConnection;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::db_interfaces::{
         transaction_records_db_interface::{
-                GetTransactionRecordsResult, PartialTransactionRecords,
+                CreateTransactionRecordResult, GetTransactionRecordsResult,
+                PartialTransactionRecords, create_transaction_records,
                 get_transaction_records_by_user_id,
         },
         user_db_interface::{
@@ -19,7 +20,7 @@ struct ResponseData {
 }
 
 #[get("/records")]
-pub async fn get_transaction_records(
+pub async fn get_transaction_records_endpoint(
         req: HttpRequest,
         db: web::Data<DatabaseConnection>,
 ) -> HttpResponse {
@@ -70,4 +71,65 @@ pub async fn get_transaction_records(
                 error_message: None,
                 records_data: Some(user_records),
         })
+}
+
+#[derive(Serialize, Deserialize)]
+struct CreateTransactionRecordsData {
+        title: String,
+        description: String,
+        amount: i64,
+}
+
+#[post("/records")]
+pub async fn create_transaction_records_endpoint(
+        data: web::Json<CreateTransactionRecordsData>,
+        req: HttpRequest,
+        db: web::Data<DatabaseConnection>,
+) -> HttpResponse {
+        // ? Verify if it's authenticated user
+        let user_data: PartialUser = match verify_user_by_req(req, db.get_ref()).await {
+                VerificationResult::Verified(data) => data,
+                VerificationResult::Unverified(reason) => {
+                        let message = match reason {
+                                UnverifiedReasons::SessionTokenNotExists => "Haven't login",
+                                UnverifiedReasons::SessionNotValid => "Session is not valid",
+                                UnverifiedReasons::SessionNotExistsInDatabase => {
+                                        "Session is not valid"
+                                }
+                        };
+
+                        return HttpResponse::Unauthorized().json(ResponseData {
+                                error_message: Some(message.to_string()),
+                                records_data: None,
+                        });
+                }
+                VerificationResult::Err(err) => {
+                        tracing::error!(
+                                "There's an error when trying to get user data from database. Error: {}",
+                                err
+                        );
+                        return HttpResponse::InternalServerError().finish();
+                }
+        };
+
+        // ? Create record data
+        let create_record_result = create_transaction_records(
+                user_data.id,
+                data.title.clone(),
+                data.description.clone(),
+                data.amount,
+                &db,
+        )
+        .await;
+
+        match create_record_result {
+                CreateTransactionRecordResult::Success => return HttpResponse::Ok().finish(),
+                CreateTransactionRecordResult::Err(err) => {
+                        tracing::error!(
+                                "There's an error when trying to create record data to database. Error: {}",
+                                err
+                        );
+                        return HttpResponse::InternalServerError().finish();
+                }
+        };
 }

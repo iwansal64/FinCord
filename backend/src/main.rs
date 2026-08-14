@@ -8,7 +8,10 @@ use actix_web::{App, HttpServer, http, web};
 use sea_orm::DatabaseConnection;
 
 use crate::routes::{
-        loggeduser::{records::get_transaction_records, verify::verify_logged_user},
+        loggeduser::{
+                records::{create_transaction_records_endpoint, get_transaction_records_endpoint},
+                verify::verify_logged_user,
+        },
         usergate::{
                 creation::user_create, login::user_login, register::user_signup,
                 verification::user_verify,
@@ -53,7 +56,8 @@ async fn main() -> std::io::Result<()> {
                         .service(user_create)
                         .service(user_login)
                         .service(verify_logged_user)
-                        .service(get_transaction_records)
+                        .service(get_transaction_records_endpoint)
+                        .service(create_transaction_records_endpoint)
         })
         .bind(("0.0.0.0", 8080))?
         .run()
