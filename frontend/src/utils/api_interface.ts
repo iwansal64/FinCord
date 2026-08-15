@@ -2,7 +2,7 @@ import useSWRMutation from "swr/mutation";
 
 type SendPostResultType = {
         result: Response | null,
-        error: any | null;
+        error: unknown | null;
 };
 
 const base_url = process.env.NEXT_PUBLIC_BASE_URL;
@@ -30,40 +30,22 @@ const sendPOST =
                 };
 
 export function useRegisterAPI() {
-        const { trigger, data, error, isMutating } = useSWRMutation(
+        return useSWRMutation(
                 "/user/register",
                 sendPOST<{ email: string; }>(),
         );
-        return {
-                trigger,
-                data,
-                error,
-                isMutating,
-        };
 }
 
 export function useLoginAPI() {
-        const { trigger, data, error, isMutating } = useSWRMutation(
+        return useSWRMutation(
                 "/user/login",
                 sendPOST<{ email_or_username: string; password: string; }>(),
         );
-        return {
-                trigger,
-                data,
-                error,
-                isMutating,
-        };
 }
 
 export function useVerifyAPI() {
-        const { trigger, data, error, isMutating } = useSWRMutation(
+        return useSWRMutation(
                 "/user/verify",
                 sendPOST(),
         );
-        return {
-                trigger,
-                data,
-                error,
-                isMutating,
-        };
 }
