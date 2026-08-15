@@ -1,0 +1,23 @@
+import ReasonsCarousel from "@/components/gate/ReasonsCarousel";
+import VerfiyTokenForm from "@/components/gate/register/VerifyTokenForm";
+import "@/styles/carousel.css";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+        title: "FinCord - Register"
+};
+
+export default function VerifyEmailPage() {
+        return (
+                <>
+                        <div className="w-screen h-screen grid grid-cols-2">
+                                <div className="relative flex justify-center items-center">
+                                        <VerfiyTokenForm />
+                                </div>
+                                <div className="relative flex justify-center items-center bg-[#eee]">
+                                        <ReasonsCarousel />
+                                </div>
+                        </div>
+                </>
+        );
+}

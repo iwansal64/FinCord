@@ -49,3 +49,17 @@ export function useVerifyAPI() {
                 sendPOST(),
         );
 }
+
+export function useVerifyRegistrationAPI() {
+        return useSWRMutation(
+                "/user/register/verify",
+                sendPOST<{ email: string; token: string; }>(),
+        );
+}
+
+export function useCreateAccountAPI() {
+        return useSWRMutation(
+                "/user/register/create",
+                sendPOST<{ email: string; token: string; username: string; password: string; }>(),
+        );
+}
