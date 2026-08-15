@@ -9,7 +9,7 @@ export default function ReasonsCarousel() {
                                 {/* Carousel List */}
                                 {reasons.map((reason, index) => (
                                         <li className="absolute top-0 left-0 w-full h-full" key={index}>
-                                                <ReasonCard reason={reason} index={index} />
+                                                <ReasonCard reason={reason} index={index} isPrioritized={index == reasons.length-1} />
                                         </li>
                                 ))}
                         </ul>
@@ -18,7 +18,7 @@ export default function ReasonsCarousel() {
         );
 }
 
-function ReasonCard(props: { reason: ReasonType; index: number }) {
+function ReasonCard(props: { reason: ReasonType; index: number, isPrioritized: boolean }) {
         return (
                 <div className="w-full h-full p-10 box-border relative flex flex-col items-center text-center *:max-w-124 *:text-black overflow-hidden pointer-events-none">
                         <h1
@@ -67,6 +67,7 @@ function ReasonCard(props: { reason: ReasonType; index: number }) {
                                 src={props.reason.image}
                                 className="carousel absolute bottom-2 left-1/2 -translate-x-1/2"
                                 width={450}
+                                loading={props.isPrioritized ? "eager" : "lazy"}
                                 alt="Mobile Payment Image"
                                 style={{
                                         animationName: "CarouselImageAnimation",
