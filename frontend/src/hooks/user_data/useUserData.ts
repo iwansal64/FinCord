@@ -5,7 +5,7 @@ export const UserDataSchema = z.object({
         id: z.number(),
         username: z.string(),
         email: z.string(),
-        created_at: z.iso.datetime(),
+        created_at: z.coerce.date(),
 })
 
 export type UserDataType = z.infer<typeof UserDataSchema>;

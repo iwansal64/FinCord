@@ -3,9 +3,11 @@ import z from "zod";
 
 export const TransactionRecordType = z.object({
         id: z.number(),
-        username: z.string(),
-        email: z.string(),
-        created_at: z.iso.datetime(),
+        title: z.string(),
+        description: z.string(),
+        amount: z.number(),
+        is_income: z.boolean(),
+        created_at: z.coerce.date(),
 })
 
 export type TransactionRecordDataType = z.infer<typeof TransactionRecordType>;
