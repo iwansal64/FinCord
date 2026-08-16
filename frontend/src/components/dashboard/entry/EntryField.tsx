@@ -1,6 +1,6 @@
 interface Props {
         title: string,
-        inputType: "text" | "password" | "email",
+        inputType: "text" | "number",
         valueState: string,
         setValueState: (value: string) => void,
         inputId: string,
@@ -8,8 +8,8 @@ interface Props {
         isDisabled?: boolean
 };
 
-export default function InputFeild(props: Props) {
-        return <div className="flex flex-col w-full h-full">
+export default function EntryField(props: Props) {
+       return <div className="flex flex-col w-full h-full">
                 <label htmlFor={props.inputId}>{props.title}</label>
                 <span className="my-1"></span>
                 <input

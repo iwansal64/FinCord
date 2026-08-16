@@ -1,3 +1,4 @@
+import EntryDashboard from "@/components/dashboard/EntryDashboard";
 import MainDashboard from "@/components/dashboard/MainDashboard";
 import Sidebar from "@/components/dashboard/Sidebar";
 import UseTransactionRecordDataHookEffect from "@/hooks/transaction_records_data/UseTransactionRecordsDataHookEffect";
@@ -21,5 +22,6 @@ export default async function DashboardPage({
                 <UseUserDataHookEffect />
                 <Sidebar active_tab={slug} />
                 {slug == "stats" && <MainDashboard />}
+                {slug == "entry" && <EntryDashboard />}
         </div>;
 }
