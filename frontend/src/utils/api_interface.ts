@@ -18,6 +18,7 @@ const sendPOST =
         <T, R = unknown>(responseBodySchema?: z.ZodType<R>) =>
                 async (url: string, { arg }: { arg: T; }): Promise<SendPostResultType<R>> => {
                         try {
+                                console.log(arg);
                                 const res = await fetch(base_url + url, {
                                         method: "POST",
                                         headers: { "Content-Type": "application/json" },
@@ -153,5 +154,12 @@ export function useGetRecordsAPI() {
         return useSWRMutation(
                 "/records",
                 sendGET<unknown, RecordsAPIResponseBodyType>(recordsAPIResponseBodySchema)
+        );
+}
+
+export function useCreateRecordAPI() {
+        return useSWRMutation(
+                "/records",
+                sendPOST<{ title: string, description: string, amount: number }>()
         );
 }
