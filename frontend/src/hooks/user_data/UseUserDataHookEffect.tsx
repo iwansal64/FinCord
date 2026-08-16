@@ -4,62 +4,89 @@ import { useVerifyAPI } from "@/utils/api_interface";
 import { get_user_data_from_object, useUserDataHook } from "./useUserData";
 import { useEffect } from "react";
 
+let initialized_trigger: boolean = false;
+let initialized_data: boolean = false;
+
 export default function UseUserDataHookEffect() {
         const { trigger, data, error } = useVerifyAPI();
         const { setUserData } = useUserDataHook();
 
+        
         useEffect(() => {
-                if (!trigger || !setUserData) {
-                        return;
-                }
+                if (!trigger || !setUserData) return;
 
-                const stored_user_data_from_session_storage = sessionStorage.getItem("userdata");
-                if (stored_user_data_from_session_storage == undefined) {
+                // Check if already trigger the request to get user API
+                if(initialized_trigger) return;
+                initialized_trigger = true;
+
+                // Check if there's cached user in session storage
+                const stored_user_data_from_session_storage_json = sessionStorage.getItem("users");
+                
+                // If there's no cached user, trigger the API request
+                if(stored_user_data_from_session_storage_json == null) {
                         trigger();
                         return;
                 }
 
+                // Convert json string to object
+                let stored_user_data_from_session_storage: object|null = null;
                 try {
-                        const user_data_from_stored_session_data = get_user_data_from_object(JSON.parse(stored_user_data_from_session_storage));
-                        if (user_data_from_stored_session_data) {
-                                setUserData(user_data_from_stored_session_data);
-                                return;
-                        }
-
-                        throw Error();
+                        stored_user_data_from_session_storage = JSON.parse(stored_user_data_from_session_storage_json) as object;
                 }
                 catch {
-                        sessionStorage.removeItem("userdata");
+                        // If the stored user from session storage is invalid object, trigger the API request
+                        sessionStorage.removeItem("users");
                         trigger();
+                        return;
                 }
+
+                // Validate the object schema before gets store it to shared data
+                const user_data_from_stored_session_data = get_user_data_from_object(stored_user_data_from_session_storage);
+                if(user_data_from_stored_session_data == null) {
+                        // If the stored user from session storage has wrong schema, trigger the API request
+                        sessionStorage.removeItem("users");
+                        trigger();
+                        return;
+                }
+
+                // If pass all of them, update the data
+                setUserData(user_data_from_stored_session_data);
         }, [trigger, setUserData]);
 
         useEffect(() => {
-                if (data) {
-                        if (!(data instanceof Response)) {
-                                // Show error
-                                return;
-                        }
+                if(!data) return;
+                
+                // Check if already get the data (if there's an error from response data user must refresh and the initialized_data resets)
+                if(initialized_data) return;
+                initialized_data = true;
 
-                        if (data.status == 401) {
-                                // Show unauthenticated
-                                window.location.href = "/gate/login";
-                                return;
-                        }
-
-                        if (data.status != 200) {
-                                // Show there's server error
-                                return;
-                        }
-
-                        data.json().then(possibly_user_data => {
-                                const user_data = get_user_data_from_object(possibly_user_data);
-                                if (user_data) {
-                                        setUserData(user_data);
-                                        sessionStorage.setItem("userdata", JSON.stringify(user_data));
-                                }
-                        })
+                if (data.client_error != null || data.result == null) {
+                        // Show error
+                        return;
                 }
+
+                if (data.status_code === 401) {
+                        // Show unauthenticated
+                        window.location.href = "/gate/login";
+                        return;
+                }
+
+                if (data.status_code != 200 || data.result.user_data == null) {
+                        // Show error message from server
+                        console.log(`Status code is:${data.status_code}!`);
+                        return;
+                }
+
+                // Verify the data schema, making sure data integrity
+                const validated_user_data = get_user_data_from_object(data.result.user_data);
+                if (validated_user_data == null) {
+                        // Show error message that the data is incompatible / mismatched
+                        console.log(`Data from server is incompatible:${data.result.user_data}!!!`);
+                        return;
+                }
+
+                setUserData(validated_user_data);
+                sessionStorage.setItem("users", JSON.stringify(validated_user_data));
         }, [data, setUserData]);
 
         useEffect(() => {
