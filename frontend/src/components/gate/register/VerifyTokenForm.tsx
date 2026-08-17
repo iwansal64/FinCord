@@ -30,7 +30,7 @@ export default function VerfiyTokenForm() {
                 console.log(`data:${data}`);
                 console.log(`error:${error}`);
 
-                if(data?.result && data.result.status == 200) {
+                if(data?.result && data.status_code == 200) {
                         sessionStorage.setItem("token_verified", token);
                         window.location.href = "./create";
                 }

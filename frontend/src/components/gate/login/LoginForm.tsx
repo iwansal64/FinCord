@@ -19,7 +19,7 @@ export default function LoginForm() {
         }
 
         useEffect(() => {
-                if (data && data.result && data.result.status == 200) {
+                if (data && data.result && data.status_code == 200) {
                         window.location.href = "/dashboard";
                 }
         }, [data]);

@@ -36,7 +36,7 @@ export default function CreateAccountForm() {
                 console.log(`data:${data}`);
                 console.log(`error:${error}`);
 
-                if(data?.result && data.result.status == 200) {
+                if(data?.result && data.status_code == 200) {
                         sessionStorage.removeItem("current_email");
                         sessionStorage.removeItem("token_verified");
                         window.location.href = "../login";
