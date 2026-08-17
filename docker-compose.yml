@@ -7,24 +7,24 @@ services:
                         - "3000:3000"
                 volumes:
                         - ./frontend:/app
-                        - /app/node_modules # anonymous volume, see note below
+                        - /app/node_modules
                         - /app/.next
                 env_file:
                         - ./frontend/.env
                 depends_on:
                         - backend
 
-        backend:
+        backend_api:
                 build:
-                        context: ./backend
+                        context: ./backend/api
                         dockerfile: Dockerfile
                 ports:
                         - "8080:8080"
                 volumes:
-                        - ./backend:/app
-                        - backend-target:/app/target # named volume, see note below
+                        - ./backend/api:/app
+                        - backend-target:/app/target
                 env_file:
-                        - ./backend/.env
+                        - ./backend/api/.env
                 depends_on:
                         postgres:
                                 condition: service_healthy
