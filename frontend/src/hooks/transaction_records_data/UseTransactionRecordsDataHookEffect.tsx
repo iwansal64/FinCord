@@ -3,6 +3,7 @@
 import { useGetRecordsAPI } from "@/utils/api_interface";
 import { useEffect } from "react";
 import { get_transaction_records_data_from_object, useTransactionRecordsDataHook } from "./useTransactionRecordsData";
+import { retrieveWithExpiration, storeWithExpiration } from "@/utils/storage_util";
 
 let initialized_trigger: boolean = false;
 let initialized_data: boolean = false;
@@ -19,22 +20,10 @@ export default function UseTransactionRecordDataHookEffect() {
                 initialized_trigger = true;
 
                 // Check if there's cached transaction records in session storage
-                const stored_transaction_records_data_from_session_storage_json = sessionStorage.getItem("transactionrecords");
+                const stored_transaction_records_data_from_session_storage = retrieveWithExpiration(sessionStorage, "transactionrecords");
                 
                 // If there's no cached transaction records, trigger the API request
-                if(stored_transaction_records_data_from_session_storage_json == null) {
-                        trigger();
-                        return;
-                }
-
-                // Convert json string to object
-                let stored_transaction_records_data_from_session_storage: object|null = null;
-                try {
-                        stored_transaction_records_data_from_session_storage = JSON.parse(stored_transaction_records_data_from_session_storage_json) as object;
-                }
-                catch {
-                        // If the stored transaction records from session storage is invalid object, trigger the API request
-                        sessionStorage.removeItem("transactionrecords");
+                if(stored_transaction_records_data_from_session_storage == null) {
                         trigger();
                         return;
                 }
@@ -43,10 +32,11 @@ export default function UseTransactionRecordDataHookEffect() {
                 const transaction_records_data_from_stored_session_data = get_transaction_records_data_from_object(stored_transaction_records_data_from_session_storage);
                 if(transaction_records_data_from_stored_session_data == null) {
                         // If the stored transaction records from session storage has wrong schema, trigger the API request
-                        sessionStorage.removeItem("transactionrecords");
                         trigger();
                         return;
                 }
+
+                console.log("CACHED TRANSACTION RECORDS DATA");
 
                 // If pass all of them, update the data
                 setTransactionRecordsData(transaction_records_data_from_stored_session_data);
@@ -82,7 +72,7 @@ export default function UseTransactionRecordDataHookEffect() {
                 }
                 
                 setTransactionRecordsData(transaction_records_data);
-                sessionStorage.setItem("transactionrecords", JSON.stringify(transaction_records_data));
+                storeWithExpiration(sessionStorage, "transactionrecords", transaction_records_data, 60*60);
                 console.log(transaction_records_data);
         }, [data, setTransactionRecordsData]);
 

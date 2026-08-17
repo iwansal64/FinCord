@@ -3,6 +3,7 @@
 import { useVerifyAPI } from "@/utils/api_interface";
 import { get_user_data_from_object, useUserDataHook } from "./useUserData";
 import { useEffect } from "react";
+import { retrieveWithExpiration, storeWithExpiration } from "@/utils/storage_util";
 
 let initialized_trigger: boolean = false;
 let initialized_data: boolean = false;
@@ -20,22 +21,10 @@ export default function UseUserDataHookEffect() {
                 initialized_trigger = true;
 
                 // Check if there's cached user in session storage
-                const stored_user_data_from_session_storage_json = sessionStorage.getItem("users");
+                const stored_user_data_from_session_storage = retrieveWithExpiration(sessionStorage, "users");
                 
                 // If there's no cached user, trigger the API request
-                if(stored_user_data_from_session_storage_json == null) {
-                        trigger();
-                        return;
-                }
-
-                // Convert json string to object
-                let stored_user_data_from_session_storage: object|null = null;
-                try {
-                        stored_user_data_from_session_storage = JSON.parse(stored_user_data_from_session_storage_json) as object;
-                }
-                catch {
-                        // If the stored user from session storage is invalid object, trigger the API request
-                        sessionStorage.removeItem("users");
+                if(stored_user_data_from_session_storage == null) {
                         trigger();
                         return;
                 }
@@ -44,11 +33,11 @@ export default function UseUserDataHookEffect() {
                 const user_data_from_stored_session_data = get_user_data_from_object(stored_user_data_from_session_storage);
                 if(user_data_from_stored_session_data == null) {
                         // If the stored user from session storage has wrong schema, trigger the API request
-                        sessionStorage.removeItem("users");
                         trigger();
                         return;
                 }
 
+                console.log("CACHED USER DATA");
                 // If pass all of them, update the data
                 setUserData(user_data_from_stored_session_data);
         }, [trigger, setUserData]);
@@ -86,7 +75,7 @@ export default function UseUserDataHookEffect() {
                 }
 
                 setUserData(validated_user_data);
-                sessionStorage.setItem("users", JSON.stringify(validated_user_data));
+                storeWithExpiration(sessionStorage, "users", validated_user_data, 60);
         }, [data, setUserData]);
 
         useEffect(() => {
