@@ -10,17 +10,17 @@ from qdrant_client.conversions.common_types import QueryResponse
 from typing import Any, TYPE_CHECKING
 from collections.abc import AsyncIterator
 from datetime import datetime
+from uuid import UUID
 
 from fincord_chatbot_api.vector_store_manager import VectorStoreManagerStorage
-from fincord_chatbot_api.type_manager import AgentContextSchema
+from fincord_chatbot_api.type_manager import AgentContextSchema, JobResult
 
 if TYPE_CHECKING:
     from _typeshed import DataclassInstance
 
 # ? Static Variables
 class AIManagerStorage:
-    system_prompt: str = ""
-      
+    system_prompt: str = ""      
 
 
 # ? AI tools
@@ -60,7 +60,7 @@ async def search_transactions(runtime: ToolRuntime[AgentContextSchema], query: s
 
 # ? Utility functions
 def send_message_to_ai(context_schema: DataclassInstance,agent: CompiledStateGraph[AgentState[Any], DataclassInstance, InputAgentState, OutputAgentState[Any]], message: str) -> AsyncIterator[dict[str, Any] | Any]:
-    stream = agent.astream(
+    return agent.astream(
         input={
             "messages": [
                 {
@@ -70,11 +70,61 @@ def send_message_to_ai(context_schema: DataclassInstance,agent: CompiledStateGra
             ]
         },
         context=context_schema,
-        stream_mode="updates",
+        stream_mode=["updates", "messages"],
         version="v2"
     )
-    return stream
 
+def append_steps_if_exists(probable_dict: dict[UUID, JobResult] | None, key: UUID, step: dict):
+    if probable_dict == None:
+        return
+    
+    probable_dict[key].steps.append(step)
+
+def set_key_if_exists(probable_dict: dict[UUID, JobResult] | None, key: UUID, subkey: str, value: str):
+    if probable_dict == None:
+        return
+    
+    probable_dict[key].__setattr__(subkey, value)
+      
+
+
+async def read_ai_stream(response: AsyncIterator[dict[str, Any] | Any], job_id: UUID, job_ids: dict[UUID, JobResult] | None = None, return_async: bool = True):
+    async for chunk in response:
+        if chunk["type"] != "updates":
+            continue
+
+        for node, data in chunk["data"].items():
+                if "messages" not in data:
+                        continue
+
+                for message in data["messages"]:
+                        print("MESSAGE IN")
+                        if isinstance(message, str) or not getattr(message, "content"):
+                                continue
+
+                        if node == "model":
+                                if getattr(message, "content"):
+                                        contents = getattr(message, "content", {})
+                                        for content in contents:
+                                                if "type" not in content:
+                                                        append_steps_if_exists(job_ids, job_id, {"type": "unknown", "content": content})
+                                                        continue
+
+                                                content_type = content.get("type", "")
+                                                if content_type == "thinking" and "thinking" in content:
+                                                        append_steps_if_exists(job_ids, job_id, {"type": "thinking", "content": content["thinking"]})
+                                                elif content_type == "text" and "text" in content:
+                                                        set_key_if_exists(job_ids, job_id, "status", "finished")
+                                                        set_key_if_exists(job_ids, job_id, "message", content["text"])
+
+
+                                if getattr(message, "tool_calls"):
+                                        for call in getattr(message, "tool_calls", []):
+                                                append_steps_if_exists(job_ids, job_id, {"type": "tool_call", "tool": call["name"], "args": call["args"]})
+
+                                        
+                        elif node == "tools":
+                                append_steps_if_exists(job_ids, job_id, {"type": "tool_result", "tool": getattr(message, "name", None), "content": getattr(message, "content", None)})
 
 
 def build_default_agent(context_schema: type[DataclassInstance], tools: list[BaseTool], system_prompt: str) -> CompiledStateGraph[AgentState[Any], DataclassInstance, InputAgentState, OutputAgentState[Any]]:

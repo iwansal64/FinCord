@@ -4,18 +4,19 @@ from langgraph.graph.state import CompiledStateGraph
 from qdrant_client import AsyncQdrantClient
 from fastapi import FastAPI, HTTPException, Request, Depends, BackgroundTasks
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import StreamingResponse
 import uvicorn
 
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
 from pydantic.json_schema import SkipJsonSchema
 from os import getenv
-from typing import Literal, TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4, UUID
 
 from fincord_chatbot_api.vector_store_manager import update_records_data_to_vector_store, create_default_qdrant_client, VectorStoreManagerStorage
-from fincord_chatbot_api.ai_manager import send_message_to_ai, build_default_agent, get_time, search_transactions, AIManagerStorage
-from fincord_chatbot_api.type_manager import PendingSyncTransactions, AgentContextSchema
+from fincord_chatbot_api.ai_manager import send_message_to_ai, build_default_agent, get_time, search_transactions, AIManagerStorage, read_ai_stream
+from fincord_chatbot_api.type_manager import PendingSyncTransactions, AgentContextSchema, JobResult
 
 if TYPE_CHECKING:
     from _typeshed import DataclassInstance
@@ -29,13 +30,6 @@ class AskRequestDataType(BaseModel):
 class GetRequestDataType(BaseModel):
         job_id: UUID
         with_steps: bool | None = None
-
-
-class JobResult:
-        def __init__(self, status: Literal["running", "finished", "error"], message: str | None) -> None:
-                self.status = status
-                self.message = message
-                self.steps = []
 
 
 def run_api():
@@ -91,56 +85,26 @@ def run_api():
                 try:
                         print("Talk to AI")
                         response = send_message_to_ai(context_schema=AgentContextSchema(qdrant_client=qdrant_client, user_id=user_id), agent=agent, message=message)
-                        async for chunk in response:
-                                for node, data in chunk["data"].items():
-                                        if "messages" not in data:
-                                                continue
-
-                                        for message in data["messages"]:
-                                                print("MESSAGE IN")
-                                                if isinstance(message, str) or not getattr(message, "content"):
-                                                        continue
-
-                                                if node == "model":
-                                                        print(message)
-                                                        if getattr(message, "content"):
-                                                                contents = getattr(message, "content", {})
-                                                                for content in contents:
-                                                                        if "type" not in content:
-                                                                                job_ids[job_id].steps.append(
-                                                                                        {"type": "unknown", "content": content}
-                                                                                )
-                                                                                continue
-
-                                                                        content_type = content.get("type", "")
-                                                                        if content_type == "thinking" and "thinking" in content:
-                                                                                job_ids[job_id].steps.append(
-                                                                                        {"type": "thinking", "content": content["thinking"]}
-                                                                                )
-                                                                        elif content_type == "text" and "text" in content:
-                                                                                job_ids[job_id].status = "finished"
-                                                                                job_ids[job_id].message = content["text"]
-
-
-                                                        if getattr(message, "tool_calls"):
-                                                                for call in getattr(message, "tool_calls", []):
-                                                                        job_ids[job_id].steps.append(
-                                                                                {"type": "tool_call", "tool": call["name"], "args": call["args"]}
-                                                                        )
-
-                                                                
-                                                elif node == "tools":
-                                                        job_ids[job_id].steps.append(
-                                                                {"type": "tool_result", "tool": getattr(message, "name", None), "content": getattr(message, "content", None)}
-                                                        )
-
+                        await read_ai_stream(response=response, job_ids=job_ids, job_id=job_id)
                 
                 except Exception as e:
                         print(f"There's an error when trying to get AI response. Error: {e}")
                         job_ids[job_id].status = "error"
                         job_ids[job_id].message = "There's an error when trying to get AI response"
                         return
-        
+                        
+        async def create_ai_response_stream(qdrant_client: AsyncQdrantClient, agent: SkipJsonSchema[CompiledStateGraph[AgentState[Any], DataclassInstance, InputAgentState, OutputAgentState[Any]]], message: str, user_id: int):
+                response = send_message_to_ai(context_schema=AgentContextSchema(qdrant_client=qdrant_client, user_id=user_id), agent=agent, message=message)
+                async for chunk in response:
+                        if chunk["type"] != "messages":
+                                continue
+
+                        data = chunk["data"][0]
+                        if getattr(data, "content", None) and isinstance(getattr(data, "content", None), str):
+                                yield getattr(data, "content")
+
+                
+
         def check_access(request_key_access: str|None) -> bool:
                 key_access = getenv("KEY_ACCESS")
                 if key_access == None:
@@ -172,7 +136,29 @@ def run_api():
 
                 return {"job_id": job_id}
 
-        @app.post("/get")
+        @app.post("/ask/stream")
+        async def ask_stream(tx: AskRequestDataType, credentials: HTTPAuthorizationCredentials = Depends(security), qdrant_client: SkipJsonSchema[AsyncQdrantClient] = Depends(get_qdrant_client), agent: SkipJsonSchema[CompiledStateGraph[AgentState[Any], DataclassInstance, InputAgentState, OutputAgentState[Any]]] = Depends(get_agent)) -> StreamingResponse:
+                # ? Verify request is really from the server
+                print(f"KEY_ACCESS: {credentials.credentials}")
+                if not check_access(credentials.credentials):
+                        raise HTTPException(status_code=401, detail="Not authorized")
+
+                # ? Check the pending sync
+                try:
+                        print("Update records to vector store")
+                        await update_records_data_to_vector_store(qdrant_client=qdrant_client, collection_name=VectorStoreManagerStorage.collection_name, embeddings=VectorStoreManagerStorage.embeddings, user_id=tx.user_id, pending_transaction=tx.pending_data)
+                except Exception as e:
+                        print(f"There's an error when trying to update vector store. Error: {e}")
+                        raise HTTPException(status_code=500, detail="There's an error in server side")
+
+                return StreamingResponse(
+                        create_ai_response_stream(qdrant_client=qdrant_client, agent=agent, message=tx.message, user_id=tx.user_id),
+                        media_type="text/event-stream",
+                        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+                )
+
+        
+        @app.get("/get")
         async def get(tx: GetRequestDataType, credentials: HTTPAuthorizationCredentials = Depends(security)):
                 # ? Verify request is really from the server
                 print(f"KEY_ACCESS: {credentials.credentials}")

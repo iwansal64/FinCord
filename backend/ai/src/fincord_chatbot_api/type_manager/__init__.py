@@ -31,3 +31,11 @@ class PendingSyncTransactions(BaseModel):
 class AgentContextSchema:
     qdrant_client: SkipJsonSchema[AsyncQdrantClient]
     user_id: int
+
+
+# ? Used for storing AI job state
+class JobResult:
+        def __init__(self, status: Literal["running", "finished", "error"], message: str | None) -> None:
+                self.status = status
+                self.message = message
+                self.steps = []
