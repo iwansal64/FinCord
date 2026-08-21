@@ -1,11 +1,11 @@
 use actix_web::{HttpRequest, HttpResponse, post, web};
-use sea_orm::{DatabaseConnection, prelude::Uuid};
+use futures::{self, StreamExt};
+use sea_orm::{DatabaseConnection};
 use serde::{Deserialize, Serialize};
 
 use crate::{
         ai_interface::chat_ai_interface::{
-                SendMessageToAIResult, WaitAIMessageResult, send_message_to_ai,
-                wait_message_from_ai,
+                SendMessageToAIResult, send_message_to_ai,
         },
         db_interfaces::{
                 transaction_records_db_interface::{
@@ -94,7 +94,7 @@ pub async fn chat_with_ai(
         )
         .await;
 
-        let job_id: Uuid = match send_message_result {
+        let ai_response = match send_message_result {
                 SendMessageToAIResult::Success(job_id) => job_id,
                 SendMessageToAIResult::Err(err) => {
                         tracing::error!(
@@ -110,25 +110,33 @@ pub async fn chat_with_ai(
                 }
         };
 
-        // ? Wait for AI response
-        let ai_response_result: WaitAIMessageResult =
-                wait_message_from_ai(requester.get_ref(), &job_id.to_string()).await;
+        let ai_streamed_response = ai_response.bytes_stream();
 
-        let ai_response: String = match ai_response_result {
-                WaitAIMessageResult::Success(data) => data,
-                WaitAIMessageResult::Err(err) => {
-                        tracing::error!(
-                                "There's an error when trying to wait for AI result. Error: {}",
-                                err
-                        );
-                        return HttpResponse::InternalServerError().json(ResponseData {
-                                ai_response: None,
-                                error_message: Some(String::from(
-                                        "There's an error from our server side",
-                                )),
-                        });
+        let stream_iter = futures::stream::unfold(ai_streamed_response, |mut streamed_response| async {
+                if let Some(chunk) = streamed_response.next().await {
+                        let bytes = match chunk {
+                                Ok(bytes) => bytes,
+                                Err(err) => {
+                                        tracing::error!("There's an error when trying to get bytes from the stream. Error: {}", err.to_string());
+                                        return None;
+                                }
+                        };
+                        let data_parse_result = String::from_utf8(bytes.to_vec());
+                        let data = match data_parse_result {
+                                Ok(data) => data,
+                                Err(err) => {
+                                        tracing::error!("There's an error when trying to parse bytes from the stream. Error: {}", err.to_string());
+                                        return None;
+                                }
+                        };
+                        
+                        return Some((data, streamed_response));
                 }
-        };
+
+                None
+        }).then(|data| async move {
+                Ok::<_, actix_web::Error>(web::Bytes::from(data))
+        });
 
         // ? Clear pending transaction records data
         let clear_pending_transactions_result: ClearPendingTransactionRecordsResult =
@@ -154,9 +162,11 @@ pub async fn chat_with_ai(
                 }
         }
 
-        // ? Send back the result
-        HttpResponse::Ok().json(ResponseData {
-                ai_response: Some(ai_response),
-                error_message: None,
-        })
+        // ? Stream the result
+
+        HttpResponse::Ok()
+                .content_type("text/event-stream")
+                .insert_header(("Cache-Control", "no-cache"))
+                .insert_header(("X-Accel-Buffering", "no"))
+                .streaming(stream_iter)
 }
