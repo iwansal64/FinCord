@@ -1,14 +1,14 @@
 from langchain_core.tools import tool, BaseTool
+from langchain.tools import ToolRuntime
 from langchain.agents import create_agent
 from langchain.agents.middleware.types import AgentState, InputAgentState, OutputAgentState
-from langgraph.stream import AsyncGraphRunStream
 from langgraph.graph.state import CompiledStateGraph
 
-from qdrant_client.http.models import Filter, FieldCondition, MatchValue
 from qdrant_client import models
 from qdrant_client.conversions.common_types import QueryResponse
 
 from typing import Any, TYPE_CHECKING
+from collections.abc import AsyncIterator
 from datetime import datetime
 
 from fincord_chatbot_api.vector_store_manager import VectorStoreManagerStorage
@@ -17,50 +17,50 @@ from fincord_chatbot_api.type_manager import AgentContextSchema
 if TYPE_CHECKING:
     from _typeshed import DataclassInstance
 
+# ? Static Variables
+class AIManagerStorage:
+    system_prompt: str = ""
+      
+
 
 # ? AI tools
 @tool
 def get_time() -> str:
     """Returns current date in ISO 8601 format"""
+    print("Get Date!")
     return datetime.now().astimezone().isoformat()
 
-@tool
-async def search_transactions(context: AgentContextSchema, user_id: int, query: str, k: int = 4) -> str:
-    """Search transaction records by keyword (query) using vector similarity search for specific user id"""
-    # TODO Finish this function!
-    # ? Create filter
-    qdrant_filter = Filter(
-        must=[
-            FieldCondition(
-                key="metadata.user_id",
-                match=MatchValue(value=user_id)
-            )
-        ]
-    )
 
+@tool
+async def search_transactions(runtime: ToolRuntime[AgentContextSchema], query: str) -> str:
+    """Search transaction records by keywords (query) using vector similarity search"""
     # ? Get the records we actually wanted by using vector cosine similarity search
-    qdrant_client = context.qdrant_client
+    print("Search Transaction!")
+    qdrant_client = runtime.context.qdrant_client
+    print(f"Create embeddings from this query: {query}!")
+    embedded_query = VectorStoreManagerStorage.embeddings.embed_query(query)
+    print("Query Points using Qdrant Client!")
     resulted_documents: QueryResponse = await qdrant_client.query_points(
         collection_name=VectorStoreManagerStorage.collection_name,
-        query=VectorStoreManagerStorage.embeddings.embed_query(query),
+        query=embedded_query,
         query_filter=models.Filter(
             must=[
                 models.FieldCondition(
                         key="user_id",
-                        match=models.MatchValue(value=user_id)
+                        match=models.MatchValue(value=runtime.context.user_id)
                 )
             ]
         ),
         limit=5,
         with_payload=True
     )
-
+    print("Query done!")
 
     return "\n\n".join([document.payload['content'] for document in resulted_documents.points if document.payload])
 
 # ? Utility functions
-async def create_ai_stream_by_message[T: "DataclassInstance"](context_schema: T,agent: CompiledStateGraph[AgentState[Any], T, InputAgentState, OutputAgentState[Any]], message: str) -> AsyncGraphRunStream:
-    stream = await agent.astream_events(
+def send_message_to_ai(context_schema: DataclassInstance,agent: CompiledStateGraph[AgentState[Any], DataclassInstance, InputAgentState, OutputAgentState[Any]], message: str) -> AsyncIterator[dict[str, Any] | Any]:
+    stream = agent.astream(
         input={
             "messages": [
                 {
@@ -70,23 +70,19 @@ async def create_ai_stream_by_message[T: "DataclassInstance"](context_schema: T,
             ]
         },
         context=context_schema,
-        version="v3"
+        stream_mode="updates",
+        version="v2"
     )
     return stream
 
-async def extract_token_from_ai_response_stream(stream: AsyncGraphRunStream):
-        response = ""
-        async for chunk in stream.messages:
-                for token in (await chunk).text:
-                        response += token
-        return response
 
 
-def build_default_agent[T: "DataclassInstance"](context_schema: type[T], tools: list[BaseTool], system_prompt: str) -> CompiledStateGraph[AgentState[Any], T, InputAgentState, OutputAgentState[Any]]:
-    return create_agent(
-        model="google_genai:gemini-3.5-flash",
+def build_default_agent(context_schema: type[DataclassInstance], tools: list[BaseTool], system_prompt: str) -> CompiledStateGraph[AgentState[Any], DataclassInstance, InputAgentState, OutputAgentState[Any]]:
+    agent = create_agent(
+        model="google_genai:gemma-4-31b-it",
         tools=tools,
         system_prompt=system_prompt,
         context_schema=context_schema,
         state_schema=AgentState
     )
+    return agent

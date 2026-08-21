@@ -5,15 +5,16 @@ from pydantic.json_schema import SkipJsonSchema
 from datetime import date, datetime
 from dataclasses import dataclass
 
-class PendingSyncToVectorStoreData(BaseModel):
-    transaction_title: str
-    transaction_description: str | None
-    transaction_date: date
-    transaction_amount: int
-    transaction_id: str
+class PendingSyncTransactions(BaseModel):
+    """This class is used for transactions data that are in pending to get sync to vector store"""
+    title: str | None
+    description: str | None
+    created_at: date | None
+    amount: int | None
+    id: int
     is_deleted: bool
 
-    @field_validator("transaction_date", mode="before")
+    @field_validator("created_at", mode="before")
     @classmethod
     def parse_iso_datetime(cls, value):
         if(isinstance(value, str)):
@@ -29,3 +30,4 @@ class PendingSyncToVectorStoreData(BaseModel):
 @dataclass
 class AgentContextSchema:
     qdrant_client: SkipJsonSchema[AsyncQdrantClient]
+    user_id: int

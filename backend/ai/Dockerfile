@@ -26,10 +26,12 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # ----------------- Stage 2: Runtime Stage -----------------
 FROM python:3.12-slim
 
+COPY --from=builder /bin/ /bin/
+
 WORKDIR /app
 
 # Copy the virtual environment containing installed packages from the builder stage
-COPY --from=builder /app/.venv /app/.venv
+COPY --from=builder /app /app
 
 # Prepend the virtual environment binaries to the PATH so python defaults to it
 ENV PATH="/app/.venv/bin:$PATH"
