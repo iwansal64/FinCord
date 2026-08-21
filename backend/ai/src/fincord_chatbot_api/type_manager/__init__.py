@@ -7,11 +7,11 @@ from dataclasses import dataclass
 
 class PendingSyncTransactions(BaseModel):
     """This class is used for transactions data that are in pending to get sync to vector store"""
+    id: int
     title: str | None
     description: str | None
     created_at: date | None
     amount: int | None
-    id: int
     is_deleted: bool
 
     @field_validator("created_at", mode="before")

@@ -4,25 +4,27 @@ use sea_orm::entity::prelude::*;
 use serde::Serialize;
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize)]
-#[sea_orm(table_name = "transaction_records")]
+#[sea_orm(table_name = "pending_sync_transactions")]
 pub struct Model {
+        pub user_id: i32,
+        pub transaction_id: i32,
         #[sea_orm(primary_key)]
         pub id: i32,
-        pub title: String,
-        pub description: String,
-        pub amount: i64,
-        pub is_income: bool,
-        pub creator_id: i32,
-        pub created_at: DateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-        #[sea_orm(has_many = "super::pending_sync_transactions::Entity")]
-        PendingSyncTransactions,
+        #[sea_orm(
+                belongs_to = "super::transaction_records::Entity",
+                from = "Column::TransactionId",
+                to = "super::transaction_records::Column::Id",
+                on_update = "NoAction",
+                on_delete = "NoAction"
+        )]
+        TransactionRecords,
         #[sea_orm(
                 belongs_to = "super::users::Entity",
-                from = "Column::CreatorId",
+                from = "Column::UserId",
                 to = "super::users::Column::Id",
                 on_update = "NoAction",
                 on_delete = "NoAction"
@@ -30,9 +32,9 @@ pub enum Relation {
         Users,
 }
 
-impl Related<super::pending_sync_transactions::Entity> for Entity {
+impl Related<super::transaction_records::Entity> for Entity {
         fn to() -> RelationDef {
-                Relation::PendingSyncTransactions.def()
+                Relation::TransactionRecords.def()
         }
 }
 

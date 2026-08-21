@@ -27,3 +27,7 @@ pub fn initialize_logger() {
                 .json()
                 .init();
 }
+
+pub fn initialize_requester() -> reqwest::Client {
+        reqwest::Client::new()
+}

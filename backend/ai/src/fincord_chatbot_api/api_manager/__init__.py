@@ -3,6 +3,7 @@ from langgraph.graph.state import CompiledStateGraph
 
 from qdrant_client import AsyncQdrantClient
 from fastapi import FastAPI, HTTPException, Request, Depends, BackgroundTasks
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import uvicorn
 
 from contextlib import asynccontextmanager
@@ -59,6 +60,7 @@ def run_api():
 
         # ? Setup API
         app = FastAPI(title="AI API Endpoint!", version="0.1.0", lifespan=lifespan)
+        security = HTTPBearer()
         key_access = getenv("KEY_ACCESS")
         if not key_access:
                 raise Exception("KEY_ACCESS environment doesn't exists!")
@@ -139,17 +141,21 @@ def run_api():
                         job_ids[job_id].message = "There's an error when trying to get AI response"
                         return
         
-        def check_access(request: Request) -> bool:
-                key_access_cookie: str | None = request.cookies.get("key_access")
-                if not key_access_cookie or key_access != key_access_cookie:
+        def check_access(request_key_access: str|None) -> bool:
+                key_access = getenv("KEY_ACCESS")
+                if key_access == None:
+                        raise Exception("KEY_ACCESS environment variable needed!")
+
+                if not request_key_access or request_key_access != key_access:
                         return False
                 return True
         
         # ? Create route to ask AI
         @app.post("/ask")
-        async def ask(request: Request, tx: AskRequestDataType, background_tasks: BackgroundTasks, qdrant_client: SkipJsonSchema[AsyncQdrantClient] = Depends(get_qdrant_client), agent: SkipJsonSchema[CompiledStateGraph[AgentState[Any], DataclassInstance, InputAgentState, OutputAgentState[Any]]] = Depends(get_agent)):
+        async def ask(tx: AskRequestDataType, background_tasks: BackgroundTasks, credentials: HTTPAuthorizationCredentials = Depends(security), qdrant_client: SkipJsonSchema[AsyncQdrantClient] = Depends(get_qdrant_client), agent: SkipJsonSchema[CompiledStateGraph[AgentState[Any], DataclassInstance, InputAgentState, OutputAgentState[Any]]] = Depends(get_agent)):
                 # ? Verify request is really from the server
-                if not check_access(request):
+                print(f"KEY_ACCESS: {credentials.credentials}")
+                if not check_access(credentials.credentials):
                         raise HTTPException(status_code=401, detail="Not authorized")
 
                         
@@ -167,9 +173,10 @@ def run_api():
                 return {"job_id": job_id}
 
         @app.post("/get")
-        async def get(request: Request, tx: GetRequestDataType):
+        async def get(tx: GetRequestDataType, credentials: HTTPAuthorizationCredentials = Depends(security)):
                 # ? Verify request is really from the server
-                if not check_access(request):
+                print(f"KEY_ACCESS: {credentials.credentials}")
+                if not check_access(credentials.credentials):
                         raise HTTPException(status_code=401, detail="Not authorized")
 
                 try:

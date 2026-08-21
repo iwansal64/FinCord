@@ -2,6 +2,7 @@
 
 pub mod prelude;
 
+pub mod pending_sync_transactions;
 pub mod registration_entries;
 pub mod transaction_records;
 pub mod users;
