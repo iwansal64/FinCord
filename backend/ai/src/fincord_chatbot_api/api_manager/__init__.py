@@ -27,6 +27,7 @@ class AskRequestDataType(BaseModel):
 
 class GetRequestDataType(BaseModel):
         job_id: UUID
+        with_steps: bool | None = None
 
 
 class JobResult:
@@ -115,6 +116,7 @@ def run_api():
                                                                                         {"type": "thinking", "content": content["thinking"]}
                                                                                 )
                                                                         elif content_type == "text" and "text" in content:
+                                                                                job_ids[job_id].status = "finished"
                                                                                 job_ids[job_id].message = content["text"]
 
 
@@ -173,10 +175,16 @@ def run_api():
                 try:
                         job = job_ids[tx.job_id]
 
+                        if tx.with_steps:
+                                return {
+                                        "status": job.status,
+                                        "message": job.message,
+                                        "steps": job.steps
+                                }
+
                         return {
                                 "status": job.status,
-                                "message": job.message,
-                                "steps": job.steps
+                                "message": job.message
                         }
                 except KeyError:
                         raise HTTPException(status_code=404, detail="ID not found")
