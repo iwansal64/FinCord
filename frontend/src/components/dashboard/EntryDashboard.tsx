@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import EntryField from "./entry/EntryField";
 import { useCreateRecordAPI } from "@/utils/api_interface";
+import { useToastMessageHook } from "@/hooks/global/useToastMessage";
 
 export default function EntryDashboard() {
         const [titleValue, setTitleValue] = useState("");
@@ -9,14 +10,10 @@ export default function EntryDashboard() {
         const [amountValue, setAmountValue] = useState(0);
 
         const { trigger, data, error, isMutating } = useCreateRecordAPI();
+        const { setToastMessage } = useToastMessageHook();
         
         useEffect(() => {
                 if(!data) return;
-
-                if (data.client_error != null) {
-                        // Show error
-                        return;
-                }
 
                 if (data.status_code === 401) {
                         // Show unauthenticated
@@ -31,8 +28,8 @@ export default function EntryDashboard() {
                 }
 
                 // Show success message
-                console.log("SUCCESS!");
-        }, [data]);
+                setToastMessage("Successfully inserted transaction records", 3000);                
+        }, [data, setToastMessage]);
 
         useEffect(() => {
                 // Show error from SWR

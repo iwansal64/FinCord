@@ -48,7 +48,7 @@ export default function UseTransactionRecordDataHookEffect() {
                 if(initialized_data) return;
                 initialized_data = true;
 
-                if (data.client_error != null || data.result == null) {
+                if (data.parsing_error != null || data.result == null) {
                         // Show error
                         return;
                 }

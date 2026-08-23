@@ -1,11 +1,14 @@
 "use client";
 
+import { useToastMessageHook } from "@/hooks/global/useToastMessage";
 import { useVerifyRegistrationAPI } from "@/utils/api_interface";
 import { useEffect, useRef, useState } from "react";
 
 export default function VerfiyTokenForm() {
         const [token, setToken] = useState("");
+
         const { trigger, data, error, isMutating } = useVerifyRegistrationAPI();
+        const { setToastMessage } = useToastMessageHook();
 
         const emailRef = useRef<string|null>(null);
 
@@ -27,14 +30,22 @@ export default function VerfiyTokenForm() {
         }, []);
 
         useEffect(() => {
-                console.log(`data:${data}`);
-                console.log(`error:${error}`);
-
-                if(data?.result && data.status_code == 200) {
+                if(!data) return;
+                
+                // If there's no error from the server
+                if(data.status_code == 200) {
                         sessionStorage.setItem("token_verified", token);
                         window.location.href = "./create";
                 }
-        }, [data, error]);
+        }, [data, token]);
+
+        useEffect(() => {
+                if(!error) return;
+
+                console.error(error);
+                setToastMessage(`There's an error when verifying token.`, 5000);
+        }, [error, setToastMessage]);
+
 
         return (
                 <div className="flex flex-col items-center justify-center gap-4 absolute top-1/2 left-1/2 -translate-1/2">

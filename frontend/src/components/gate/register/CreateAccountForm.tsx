@@ -3,12 +3,15 @@
 import { useCreateAccountAPI } from "@/utils/api_interface";
 import { useEffect, useRef, useState } from "react";
 import InputFeild from "../InputField";
+import { useToastMessageHook } from "@/hooks/global/useToastMessage";
 
 export default function CreateAccountForm() {
         const [username, setUsername] = useState("");
         const [password, setPassword] = useState("");
         const [confirmPassword, setConfirmPassword] = useState("");
+
         const { trigger, data, error, isMutating } = useCreateAccountAPI();
+        const { setToastMessage } = useToastMessageHook();
         
         const emailRef = useRef<string|null>(null);
         const tokenRef = useRef<string|null>(null);
@@ -33,15 +36,28 @@ export default function CreateAccountForm() {
         }, []);
 
         useEffect(() => {
-                console.log(`data:${data}`);
-                console.log(`error:${error}`);
-
-                if(data?.result && data.status_code == 200) {
+                if(!data) return;
+                
+                // If there's no error from the server
+                if(data.status_code == 200) {
+                        setToastMessage("Account has been successfully created!", 5000);
+                        
                         sessionStorage.removeItem("current_email");
                         sessionStorage.removeItem("token_verified");
-                        window.location.href = "../login";
+                        
+                        setTimeout(() => {
+                                window.location.href = "../login";
+                        }, 5000);
                 }
-        }, [data, error]);
+        }, [data, setToastMessage]);
+
+        useEffect(() => {
+                if(!error) return;
+
+                console.error(error);
+                setToastMessage(`There's an error when creating account.`, 5000);
+        }, [error, setToastMessage]);
+
 
         return (
                 <div className="flex flex-col items-center justify-center gap-4 absolute top-1/2 left-1/2 -translate-1/2">

@@ -1,11 +1,14 @@
 "use client";
 
+import { useToastMessageHook } from "@/hooks/global/useToastMessage";
 import { useRegisterAPI } from "@/utils/api_interface";
 import { useEffect, useState } from "react";
 
 export default function SignForm() {
         const [email, setEmail] = useState("");
+
         const { trigger, data, error, isMutating } = useRegisterAPI();
+        const { setToastMessage } = useToastMessageHook();
 
         function SubmitForm() {
                 if (email.length == 0) return;
@@ -13,14 +16,26 @@ export default function SignForm() {
         }
 
         useEffect(() => {
-                console.log(`data:${data}`);
-                console.log(`error:${error}`);
+                if(!data) return;
+                
+                // If there's no error from the server
+                if(data.status_code == 200) {
+                        setToastMessage("Please check your mailbox!!", 5000);
 
-                if(data?.result && data.status_code == 200) {
                         sessionStorage.setItem("current_email", email);
-                        window.location.href = "./register/verify";
+                        
+                        setTimeout(() => {
+                                window.location.href = "./register/verify";
+                        }, 5000);
                 }
-        }, [data, error]);
+        }, [data, email, setToastMessage]);
+
+        useEffect(() => {
+                if(!error) return;
+
+                console.error(error);
+                setToastMessage(`There's an error when submitting sign in form.`, 5000);
+        }, [error, setToastMessage]);
 
         return (
                 <div className="flex flex-col items-center justify-center gap-4 absolute top-1/2 left-1/2 -translate-1/2">

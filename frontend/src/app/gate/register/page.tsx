@@ -2,6 +2,7 @@ import SignForm from "@/components/gate/register/SignForm";
 import ReasonsCarousel from "@/components/gate/ReasonsCarousel";
 import "@/styles/carousel.css";
 import { Metadata } from "next";
+import ToastMessage from "@/components/global/ToastMessage";
 
 export const metadata: Metadata = {
         title: "FinCord - Register"
@@ -18,6 +19,7 @@ export default function SignPage() {
                                         <ReasonsCarousel />
                                 </div>
                         </div>
+                        <ToastMessage />
                 </>
         );
 }

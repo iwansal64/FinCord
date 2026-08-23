@@ -1,6 +1,7 @@
 import EntryDashboard from "@/components/dashboard/EntryDashboard";
 import MainDashboard from "@/components/dashboard/MainDashboard";
 import Sidebar from "@/components/dashboard/Sidebar";
+import ToastMessage from "@/components/global/ToastMessage";
 import UseTransactionRecordDataHookEffect from "@/hooks/transaction_records_data/UseTransactionRecordsDataHookEffect";
 import UseUserDataHookEffect from "@/hooks/user_data/UseUserDataHookEffect";
 import { Metadata } from "next";
@@ -23,5 +24,6 @@ export default async function DashboardPage({
                 <Sidebar active_tab={slug} />
                 {slug == "stats" && <MainDashboard />}
                 {slug == "entry" && <EntryDashboard />}
+                <ToastMessage />
         </div>;
 }

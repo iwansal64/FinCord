@@ -4,135 +4,107 @@ import z from "zod";
 type SendPostResultType<T> = {
         result: T | null,
         status_code: number | null,
-        client_error: unknown | null;
+        parsing_error: z.ZodError | null
 };
 
 type SendPostStreamingResponseResultType = {
-        client_error: unknown | null;
         error: unknown | null;
 };
 
 type SendGetResultType<T> = {
         result: T | null,
         status_code: number | null,
-        client_error: unknown | null;
+        parsing_error: z.ZodError | null
 };
 
 const base_url = process.env.NEXT_PUBLIC_BASE_URL;
 const sendPOST =
         <T, R = unknown>(responseBodySchema?: z.ZodType<R>) =>
                 async (url: string, { arg }: { arg: T; }): Promise<SendPostResultType<R>> => {
-                        try {
-                                console.log(arg);
-                                const res = await fetch(base_url + url, {
-                                        method: "POST",
-                                        headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify(arg),
-                                        credentials: "include",
-                                });
+                        const res = await fetch(base_url + url, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify(arg),
+                                credentials: "include",
+                        });
 
-                                if(!responseBodySchema) {
-                                        return {
-                                                result: null,
-                                                status_code: res.status,
-                                                client_error: null
-                                        };
-                                }
-
-                                const dataParsingResult = responseBodySchema.safeParse(await res.json());
-                                
-                                return {
-                                        result: dataParsingResult.success?dataParsingResult.data:null,
-                                        status_code: res.status,
-                                        client_error: (!dataParsingResult.success)?dataParsingResult.error:null
-                                };
-                        } catch (error) {
+                        if(!responseBodySchema) {
                                 return {
                                         result: null,
-                                        status_code: null,
-                                        client_error: error
+                                        status_code: res.status,
+                                        parsing_error: null
                                 };
                         }
+
+                        const dataParsingResult = responseBodySchema.safeParse(await res.json());
+                        
+                        return {
+                                result: dataParsingResult.success?dataParsingResult.data:null,
+                                status_code: res.status,
+                                parsing_error: (!dataParsingResult.success)?dataParsingResult.error:null
+                        };
                 };
 
 const sendGET =
         <T, R = unknown>(responseBodySchema?: z.ZodType<R>) =>
                 async (url: string, { arg }: { arg: T; }): Promise<SendGetResultType<R>> => {
-                        try {
-                                const res = await fetch(base_url + url, {
-                                        method: "GET",
-                                        headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify(arg),
-                                        credentials: "include",
-                                });
-                                
-                                if(!responseBodySchema) {
-                                        return {
-                                                result: null,
-                                                status_code: res.status,
-                                                client_error: null
-                                        };
-                                }
-
-                                const dataParsingResult = responseBodySchema.safeParse(await res.json());
-                                
-                                return {
-                                        result: dataParsingResult.success?dataParsingResult.data:null,
-                                        status_code: res.status,
-                                        client_error: (!dataParsingResult.success)?dataParsingResult.error:null
-                                };
-                        } catch (error) {
+                        const res = await fetch(base_url + url, {
+                                method: "GET",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify(arg),
+                                credentials: "include",
+                        });
+                        
+                        if(!responseBodySchema) {
                                 return {
                                         result: null,
-                                        status_code: null,
-                                        client_error: error
+                                        status_code: res.status,
+                                        parsing_error: null
                                 };
                         }
+
+                        const dataParsingResult = responseBodySchema.safeParse(await res.json());
+                        
+                        return {
+                                result: dataParsingResult.success?dataParsingResult.data:null,
+                                status_code: res.status,
+                                parsing_error: (!dataParsingResult.success)?dataParsingResult.error:null
+                        };
                 };
 
 const sendPOSTStreamingResponse = <T extends {[key: string]: string}>() =>
                 async (url: string, { arg }: { arg: { onChunk: (chunk: string) => void, onOver: (fullChunk: string) => void, body: T } }): Promise<SendPostStreamingResponseResultType> => {
-                        try {
-                                console.log(arg);
-                                const res = await fetch(base_url + url, {
-                                        method: "POST",
-                                        headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify(arg.body),
-                                        credentials: "include",
-                                });
+                        const res = await fetch(base_url + url, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify(arg.body),
+                                credentials: "include",
+                        });
 
-                                if (!res.ok || !res.body) {
-                                        return {
-                                                client_error: null,
-                                                error: (await res.json())
-                                        }
-                                }
-
-                                const reader = res.body.getReader();
-                                const decoder = new TextDecoder();
-                                let done = false;
-                                let fullChunk = "";
-                                while(!done) {
-                                        const { value, done: streamDone } = await reader.read();
-                                        done = streamDone;
-
-                                        if(value) {
-                                                const decoded = decoder.decode(value, { stream: true });
-                                                arg.onChunk(decoded);
-                                                fullChunk += decoded;
-                                        }
-                                }
-
-                                arg.onOver(fullChunk);
-                        } catch (error) {
+                        if (!res.ok || !res.body) {
                                 return {
-                                        client_error: error,
-                                        error: null
-                                };
+                                        error: (await res.json())
+                                }
                         }
 
+                        const reader = res.body.getReader();
+                        const decoder = new TextDecoder();
+                        let done = false;
+                        let fullChunk = "";
+                        while(!done) {
+                                const { value, done: streamDone } = await reader.read();
+                                done = streamDone;
+
+                                if(value) {
+                                        const decoded = decoder.decode(value, { stream: true });
+                                        arg.onChunk(decoded);
+                                        fullChunk += decoded;
+                                }
+                        }
+
+                        arg.onOver(fullChunk);
+
                         return {
-                                client_error: null,
                                 error: null
                         }
                 };

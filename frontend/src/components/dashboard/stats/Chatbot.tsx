@@ -9,7 +9,7 @@ export default function Chatbot() {
         const chatContainer = useRef<HTMLDivElement|null>(null);
         
         const [message, setMessage] = useState("");
-        const [messageChunk, setMessageChunk] = useState("");
+        const [messageChunk, setMessageChunk] = useState<null|string>(null);
 
         const { setToastMessage } = useToastMessageHook();
 
@@ -21,16 +21,12 @@ export default function Chatbot() {
                         return;
                 }
 
-                setMessageChunk("");
+                setMessageChunk(null);
                 addChatHistory({
                         is_user: true,
                         message_content: message,
                         time: new Date()
                 });
-                setTimeout(() => {
-                                if(!chatContainer.current) return;
-                        chatContainer.current.scrollTop = chatContainer.current.scrollHeight;
-                }, 100);
                 trigger({
                         body: {
                                 message: message
@@ -39,15 +35,12 @@ export default function Chatbot() {
                                 setMessageChunk((currentState) => currentState + value);
                         },
                         onOver: (fullChunk: string) => {
-                                if(!chatContainer.current) return;
-                                
-                                setMessageChunk("");
+                                setMessageChunk(null);
                                 addChatHistory({
                                         message_content: fullChunk,
                                         is_user: false,
                                         time: new Date()
                                 });
-                                chatContainer.current.scrollTop = chatContainer.current.scrollHeight;
                         }
                 });
         }
@@ -55,21 +48,14 @@ export default function Chatbot() {
         useEffect(() => {
                 if(!data || !setToastMessage) return;
                 
-                if(data.client_error == null && data.error == null) {
-                        return;
-                }
+                // If there's no error, return (the result already processed in onChunk function above)
+                if(data.error == null) return;
 
-                // Show error if there's client error
-                if(data.client_error) {
-                        setToastMessage(`There's client error: ${data.client_error.toString()}`, 5000);
-                        return;
-                }
-                
                 // Show error if there's server error
                 if(data.error) {
                         setToastMessage(`There's server error: ${data.error.toString()}`, 5000);
                 }
-        }, [data, messageChunk, setToastMessage]);
+        }, [data, setToastMessage]);
 
         useEffect(() => {
                 // Show error if there's a client error
@@ -81,7 +67,8 @@ export default function Chatbot() {
         }, [error, setToastMessage]);
 
         useEffect(() => {
-                console.log(chatHistory);
+                if(!chatContainer.current) return;
+                chatContainer.current.scrollTop = chatContainer.current.scrollHeight;
         }, [chatHistory]);
 
 
@@ -94,23 +81,13 @@ export default function Chatbot() {
                 <div className="flex flex-col gap-4 p-2 overflow-auto w-full h-full" ref={chatContainer}>
                         {chatHistory.map((chat, index) => <MessageBubble key={index} message_content={chat.message_content} is_user={chat.is_user} time={chat.time} />)}
                         {(() => {
-                                if(messageChunk != "") {
-                                        return <MessageBubble message_content={messageChunk} is_user={false} time={new Date()} />;
-                                }
-                                return <></>;
+                                if(messageChunk == null) return <></>;
+                                return <MessageBubble message_content={messageChunk} is_user={false} time={new Date()} />;
                         })()}
                 </div>
                 {/* Message Input */}
                 <form className="w-full p-2" onSubmit={(e) => { sendMessageToAI(); e.preventDefault(); e.target.reset() }}>
-                        <input type="text" className="p-2 rounded-2xl w-full h-full bg-gray-800 border border-white" placeholder="Type messages.." onChange={(e) => {
-                                if(e.target.value == "reset") {
-                                        setMessageChunk("");
-                                }
-                                else if(e.target.value == "check") {
-                                        console.log(chatHistory);
-                                }
-                                setMessage(e.target.value);
-                        }} disabled={isMutating} />
+                        <input type="text" className="p-2 rounded-2xl w-full h-full bg-gray-800 border border-white" placeholder="Type messages.." onChange={(e) => setMessage(e.target.value)} disabled={isMutating} />
                 </form>
         </div>;
 }
