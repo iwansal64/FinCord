@@ -2,19 +2,19 @@ import { create } from "zustand";
 
 export type ToastMessageHookType = {
         isShow: boolean,
-        message: string,
-        setMessage: (newMessage: string, timeout_in_ms: number) => void,
+        toastMessage: string,
+        setToastMessage: (newMessage: string, timeout_in_ms: number) => void,
 }
 
 let toastDisapperTimeout: NodeJS.Timeout | null = null;
 
 export const useToastMessageHook = create<ToastMessageHookType>((set) => ({
         isShow: false,
-        message: "",
-        setMessage: (newMessage: string, timeout_in_ms: number = 1000) => {
+        toastMessage: "",
+        setToastMessage: (newMessage: string, timeout_in_ms: number = 1000) => {
                 set(() => ({
                         isShow: true,
-                        message: newMessage
+                        toastMessage: newMessage
                 }));
 
                 // If theere's timeout happening in the background, close it
@@ -33,7 +33,7 @@ export const useToastMessageHook = create<ToastMessageHookType>((set) => ({
                                 // Make the message disappear after around animation duration
                                 toastDisapperTimeout = setTimeout(() => {
                                         set(() => ({
-                                                message: ""
+                                                toastMessage: ""
                                         }));
 
                                         toastDisapperTimeout = null;

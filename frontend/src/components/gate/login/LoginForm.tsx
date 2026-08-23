@@ -9,7 +9,7 @@ export default function LoginForm() {
         const [password, setPassword] = useState("");
 
         const { trigger, data, error, isMutating } = useLoginAPI();
-        const { setMessage } = useToastMessageHook()
+        const { setToastMessage: setMessage } = useToastMessageHook()
 
         function SubmitForm() {
                 if (emailOrUsername.length == 0 || password.length == 0) return;

@@ -7,6 +7,11 @@ type SendPostResultType<T> = {
         client_error: unknown | null;
 };
 
+type SendPostStreamingResponseResultType = {
+        client_error: unknown | null;
+        error: unknown | null;
+};
+
 type SendGetResultType<T> = {
         result: T | null,
         status_code: number | null,
@@ -82,6 +87,53 @@ const sendGET =
                                         status_code: null,
                                         client_error: error
                                 };
+                        }
+                };
+
+const sendPOSTStreamingResponse = <T extends {[key: string]: string}>() =>
+                async (url: string, { arg }: { arg: { onChunk: (chunk: string) => void, onOver: (fullChunk: string) => void, body: T } }): Promise<SendPostStreamingResponseResultType> => {
+                        try {
+                                console.log(arg);
+                                const res = await fetch(base_url + url, {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify(arg.body),
+                                        credentials: "include",
+                                });
+
+                                if (!res.ok || !res.body) {
+                                        return {
+                                                client_error: null,
+                                                error: (await res.json())
+                                        }
+                                }
+
+                                const reader = res.body.getReader();
+                                const decoder = new TextDecoder();
+                                let done = false;
+                                let fullChunk = "";
+                                while(!done) {
+                                        const { value, done: streamDone } = await reader.read();
+                                        done = streamDone;
+
+                                        if(value) {
+                                                const decoded = decoder.decode(value, { stream: true });
+                                                arg.onChunk(decoded);
+                                                fullChunk += decoded;
+                                        }
+                                }
+
+                                arg.onOver(fullChunk);
+                        } catch (error) {
+                                return {
+                                        client_error: error,
+                                        error: null
+                                };
+                        }
+
+                        return {
+                                client_error: null,
+                                error: null
                         }
                 };
 
@@ -162,4 +214,11 @@ export function useCreateRecordAPI() {
                 "/records",
                 sendPOST<{ title: string, description: string, amount: number }>()
         );
+}
+
+export function useSendMessageToAIAPI() {
+        return useSWRMutation(
+                "/user/chat",
+                sendPOSTStreamingResponse<{ message: string }>()
+        )
 }
