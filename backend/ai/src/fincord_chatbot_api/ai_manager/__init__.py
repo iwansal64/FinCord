@@ -32,8 +32,11 @@ def get_time() -> str:
 
 
 @tool
-async def search_transactions(runtime: ToolRuntime[AgentContextSchema], query: str) -> str:
-    """Search transaction records by keywords (query) using vector similarity search"""
+async def search_transactions(runtime: ToolRuntime[AgentContextSchema], query: str, date_start_iso_8601: str, date_end_iso_8601: str) -> str:
+    """Search transaction records by keywords (query) using vector similarity search. date_start_iso_8601 and date_end_iso_8601 use iso8061 format. This function can only produce maximum 30 documents"""
+    date_start = datetime.fromisoformat(date_start_iso_8601)
+    date_end = datetime.fromisoformat(date_end_iso_8601)
+    
     # ? Get the records we actually wanted by using vector cosine similarity search
     print("Search Transaction!")
     qdrant_client = runtime.context.qdrant_client
@@ -46,12 +49,19 @@ async def search_transactions(runtime: ToolRuntime[AgentContextSchema], query: s
         query_filter=models.Filter(
             must=[
                 models.FieldCondition(
-                        key="user_id",
-                        match=models.MatchValue(value=runtime.context.user_id)
+                    key="user_id",
+                    match=models.MatchValue(value=runtime.context.user_id)
+                ),
+                models.FieldCondition(
+                    key="transaction_date",
+                    range=models.DatetimeRange(
+                        gte=date_start,
+                        lte=date_end 
+                    )
                 )
             ]
         ),
-        limit=5,
+        limit=30,
         with_payload=True
     )
     print("Query done!")

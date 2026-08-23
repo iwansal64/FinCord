@@ -100,7 +100,9 @@ def run_api():
                                 continue
 
                         data = chunk["data"][0]
-                        if getattr(data, "content", None) and isinstance(getattr(data, "content", None), str):
+                        print(f"data: {data}")
+                        # Check if there's no tool_call_id attribute to avoid yielding tool calls contents
+                        if not getattr(data, "tool_call_id", None) and getattr(data, "content", None) and isinstance(getattr(data, "content"), str):
                                 yield getattr(data, "content")
 
                 

@@ -2,6 +2,7 @@ use std::env;
 
 use reqwest::Response;
 use serde::Serialize;
+use serde_json;
 
 use crate::db_interfaces::transaction_records_db_interface::PendingSyncTransaction;
 
@@ -32,7 +33,10 @@ pub async fn send_message_to_ai(
                 pending_data: pending_data,
         };
 
-        tracing::info!("KEY_ACCESS: {key_access}");
+        tracing::info!(
+                "request body: {}",
+                serde_json::to_string(&request_body).unwrap()
+        );
         let request_result: Result<reqwest::Response, reqwest::Error> = requester
                 .post(format!("{ai_api_base_url}/ask/stream"))
                 .bearer_auth(key_access)

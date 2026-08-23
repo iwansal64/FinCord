@@ -49,20 +49,34 @@ pub async fn get_transaction_records_by_user_id(
 #[derive(Serialize, Default)]
 pub struct UpdatedTransaction {
         pub title: String,
-        pub description: Option<String>,
+        pub description: String,
         pub created_at: DateTimeWithTimeZone,
         pub amount: i64,
         pub id: i32,
         pub is_deleted: bool,
 }
 
-#[derive(Serialize, Default)]
+#[derive(Serialize)]
 pub struct DeletedTransaction {
         pub id: i32,
         pub is_deleted: bool,
 }
 
-pub type PendingSyncTransaction = either::Either<UpdatedTransaction, DeletedTransaction>;
+impl Default for DeletedTransaction {
+        fn default() -> Self {
+                DeletedTransaction {
+                        id: 0,
+                        is_deleted: true,
+                }
+        }
+}
+
+#[derive(Serialize)]
+#[serde(untagged)]
+pub enum PendingSyncTransaction {
+        Updated(UpdatedTransaction),
+        Deleted(DeletedTransaction),
+}
 
 pub struct SucceedGetPendingTransactionResult {
         pub pending_sync_transactions: Vec<PendingSyncTransaction>,
@@ -95,7 +109,7 @@ pub async fn get_pending_transaction_records_by_user_id(
 
         let mut pending_transactions_ids: Vec<i32> = pending_transactions_data
                 .iter()
-                .map(|model| model.id)
+                .map(|model| model.transaction_id)
                 .collect::<Vec<i32>>();
 
         // ? Get the transaction data for each pending sync transactions
@@ -128,10 +142,10 @@ pub async fn get_pending_transaction_records_by_user_id(
                                                 pending_transactions_ids.remove(id);
                                         }
 
-                                        either::Either::Left(UpdatedTransaction {
+                                        PendingSyncTransaction::Updated(UpdatedTransaction {
                                                 id: record.id,
                                                 title: record.title.clone(),
-                                                description: Some(record.description.clone()),
+                                                description: record.description.clone(),
                                                 created_at: record.created_at,
                                                 amount: record.amount,
                                                 ..Default::default()
@@ -146,7 +160,7 @@ pub async fn get_pending_transaction_records_by_user_id(
         let deleted_transaction_records: Vec<PendingSyncTransaction> = pending_transactions_ids
                 .iter()
                 .map(|id| {
-                        either::Either::Right(DeletedTransaction {
+                        PendingSyncTransaction::Deleted(DeletedTransaction {
                                 id: *id,
                                 ..Default::default()
                         })
@@ -196,20 +210,38 @@ pub async fn create_transaction_records(
         amount: i64,
         db: &DatabaseConnection,
 ) -> CreateTransactionRecordResult {
-        let transaction_record: transaction_records::ActiveModel =
-                transaction_records::ActiveModel {
-                        creator_id: ActiveValue::Set(user_id),
-                        title: ActiveValue::Set(title),
-                        description: ActiveValue::Set(description),
-                        amount: ActiveValue::Set(amount),
-                        created_at: ActiveValue::Set(
-                                Utc::now().with_timezone(&FixedOffset::east_opt(0).unwrap()),
-                        ),
-                        is_income: ActiveValue::Set(amount > 0),
-                        ..Default::default()
-                };
+        // Create transaction records
+        let insert_transaction_record_result = transaction_records::ActiveModel {
+                creator_id: ActiveValue::Set(user_id),
+                title: ActiveValue::Set(title),
+                description: ActiveValue::Set(description),
+                amount: ActiveValue::Set(amount),
+                created_at: ActiveValue::Set(
+                        Utc::now().with_timezone(&FixedOffset::east_opt(0).unwrap()),
+                ),
+                is_income: ActiveValue::Set(amount > 0),
+                ..Default::default()
+        }
+        .save(db)
+        .await;
 
-        match transaction_record.save(db).await {
+        let transaction_record = match insert_transaction_record_result {
+                Ok(data) => data,
+                Err(err) => {
+                        return CreateTransactionRecordResult::Err(err.to_string());
+                }
+        };
+
+        // Create pending sync transaction records to a new transaction records
+        let insert_pending_transaction_record_result = pending_sync_transactions::ActiveModel {
+                user_id: ActiveValue::Set(user_id),
+                transaction_id: transaction_record.id,
+                ..Default::default()
+        }
+        .save(db)
+        .await;
+
+        match insert_pending_transaction_record_result {
                 Ok(_) => CreateTransactionRecordResult::Success,
                 Err(err) => CreateTransactionRecordResult::Err(err.to_string()),
         }
