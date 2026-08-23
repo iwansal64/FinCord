@@ -1,5 +1,6 @@
 "use client";
 
+import { useToastMessageHook } from "@/hooks/global/useToastMessage";
 import { useLoginAPI } from "@/utils/api_interface";
 import { useEffect, useState } from "react";
 
@@ -8,6 +9,7 @@ export default function LoginForm() {
         const [password, setPassword] = useState("");
 
         const { trigger, data, error, isMutating } = useLoginAPI();
+        const { setMessage } = useToastMessageHook()
 
         function SubmitForm() {
                 if (emailOrUsername.length == 0 || password.length == 0) return;
@@ -19,16 +21,25 @@ export default function LoginForm() {
         }
 
         useEffect(() => {
-                if (data && data.result && data.status_code == 200) {
+                if(!data || !setMessage) {
+                        return;
+                }
+
+                if (data.status_code == 200) {
                         window.location.href = "/dashboard";
                 }
-        }, [data]);
+                else if(data.status_code == 401) {
+                        setMessage(`Authentication Failed`, 5000);
+                }
+        }, [data, setMessage]);
 
         useEffect(() => {
-                if (error) {
-                        // Show error
+                if (!error || !setMessage) {
+                        return;
                 }
-        }, [error])
+                
+                setMessage(`There's an error: ${error}`, 5000);
+        }, [error, setMessage])
 
         return (
                 <div className="flex flex-col items-center justify-center gap-4 absolute top-1/2 left-1/2 -translate-1/2">

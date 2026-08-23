@@ -1,5 +1,6 @@
 import LoginForm from "@/components/gate/login/LoginForm";
 import ReasonsCarousel from "@/components/gate/ReasonsCarousel";
+import ToastMessage from "@/components/global/ToastMessage";
 import "@/styles/carousel.css";
 import { Metadata } from "next";
 
@@ -18,6 +19,7 @@ export default function LoginPage() {
                                         <ReasonsCarousel />
                                 </div>
                         </div>
+                        <ToastMessage />
                 </>
         );
 }
