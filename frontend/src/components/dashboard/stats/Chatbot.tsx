@@ -32,7 +32,7 @@ export default function Chatbot() {
                                 message: message
                         },
                         onChunk: (value: string) => {
-                                setMessageChunk((currentState) => currentState + value);
+                                setMessageChunk((currentState) => (currentState != null) ? currentState + value : value);
                         },
                         onOver: (fullChunk: string) => {
                                 setMessageChunk(null);
