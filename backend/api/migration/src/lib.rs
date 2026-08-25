@@ -11,6 +11,7 @@ mod m20260804_125205_add_email_address_to_users;
 mod m20260820_024149_add_is_already_embedded_to_transaction_records;
 mod m20260820_065041_add_pending_sync_transactions_table;
 mod m20260820_065541_add_primary_key_to_pending_sync_transactions;
+mod m20260825_000530_change_on_delete_action_for_pending_sync_transaction;
 
 pub struct Migrator;
 
@@ -29,6 +30,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260820_024149_add_is_already_embedded_to_transaction_records::Migration),
             Box::new(m20260820_065041_add_pending_sync_transactions_table::Migration),
             Box::new(m20260820_065541_add_primary_key_to_pending_sync_transactions::Migration),
+            Box::new(m20260825_000530_change_on_delete_action_for_pending_sync_transaction::Migration),
         ]
         }
 }
