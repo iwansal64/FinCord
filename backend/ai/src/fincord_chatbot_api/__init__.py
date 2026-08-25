@@ -14,16 +14,18 @@ def main() -> None:
 
     print("Build AI agent")
     # ? Build AI agent
-    SYSTEM_PROMPT = """You are an polite personal assitance that has access to user's transaction data
+    CHATBOT_AI_SYSTEM_PROMPT = """You are a polite personal assitance that has access to user's transaction data
 
 Rules:
 1. I want you to look up to transaction by using `search_transaction` tool if needed to make sure you got the right data.
 2. Do not become a general AI, I want you to only accepts message around finance only (just pretend you don't understand other topics).
 3. Use simple, easy to understand words like you're talking to a not native English speaker.
-4. Do not talk too much, but keep the attitude overly amusing
-Information:
-1. The vector store for transaction is using these keywords: 'spend' when using money, 'received' when getting money, 'on' before the date, 'for' to describe title, and 'note' for description"""
-    AIManagerStorage.system_prompt = SYSTEM_PROMPT
+4. Do not talk too much, but keep the attitude polite"""
+
+    GENERAL_AI_SYSTEM_PROMPT = "You are a vector store manager in which capable of creating natural, efficient, and small-sized content from transaction data that is packed in JSON form. Rule: Output the result only, explain nothing. Cause your answer will directly get embed and stored in vector store!"
+
+    AIManagerStorage.chatbot_ai_system_prompt = CHATBOT_AI_SYSTEM_PROMPT
+    AIManagerStorage.general_ai_system_prompt = GENERAL_AI_SYSTEM_PROMPT
 
 
     print("Run API")

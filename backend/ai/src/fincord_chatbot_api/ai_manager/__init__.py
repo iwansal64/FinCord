@@ -1,8 +1,13 @@
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import tool, BaseTool
+from langchain_core.runnables.base import RunnableSerializable
+from langchain_core.output_parsers import StrOutputParser
 from langchain.tools import ToolRuntime
 from langchain.agents import create_agent
 from langchain.agents.middleware.types import AgentState, InputAgentState, OutputAgentState
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph.state import CompiledStateGraph
+from google.genai.types import AutomaticFunctionCallingConfig
 
 from qdrant_client import models
 from qdrant_client.conversions.common_types import QueryResponse
@@ -20,7 +25,8 @@ if TYPE_CHECKING:
 
 # ? Static Variables
 class AIManagerStorage:
-    system_prompt: str = ""      
+    chatbot_ai_system_prompt: str = ""      
+    general_ai_system_prompt: str = ""
 
 
 # ? AI tools
@@ -137,12 +143,29 @@ async def read_ai_stream(response: AsyncIterator[dict[str, Any] | Any], job_id: 
                                 append_steps_if_exists(job_ids, job_id, {"type": "tool_result", "tool": getattr(message, "name", None), "content": getattr(message, "content", None)})
 
 
-def build_default_agent(context_schema: type[DataclassInstance], tools: list[BaseTool], system_prompt: str) -> CompiledStateGraph[AgentState[Any], DataclassInstance, InputAgentState, OutputAgentState[Any]]:
+def build_default_agent(context_schema: type[DataclassInstance] | None = None, tools: list[BaseTool] = [], system_prompt: str = "", model: str = "google_genai:gemma-4-31b-it") -> CompiledStateGraph[AgentState[Any], DataclassInstance, InputAgentState, OutputAgentState[Any]]:
     agent = create_agent(
-        model="google_genai:gemma-4-31b-it",
+        model=model,
         tools=tools,
         system_prompt=system_prompt,
         context_schema=context_schema,
         state_schema=AgentState
     )
+    return agent
+
+def build_simplest_agent(system_prompt: str = "", google_model: str = "gemini-2.5-flash") -> RunnableSerializable[dict[str, Any], str]:
+    llm = ChatGoogleGenerativeAI(
+        model=google_model
+    )
+
+    llm_json = llm.bind(
+        automatic_function_calling=AutomaticFunctionCallingConfig(disable=True),
+    )
+    
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", system_prompt),
+        ("human", "{message}")
+    ])
+    
+    agent = prompt | llm_json | StrOutputParser()
     return agent

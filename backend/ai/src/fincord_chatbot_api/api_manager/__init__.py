@@ -1,4 +1,6 @@
 from langchain.agents.middleware.types import InputAgentState, OutputAgentState, AgentState
+from langchain_core.runnables.base import RunnableSerializable
+from langchain_core.language_models import LanguageModelInput
 from langgraph.graph.state import CompiledStateGraph
 
 from qdrant_client import AsyncQdrantClient
@@ -15,7 +17,7 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid4, UUID
 
 from fincord_chatbot_api.vector_store_manager import update_records_data_to_vector_store, create_default_qdrant_client, VectorStoreManagerStorage
-from fincord_chatbot_api.ai_manager import send_message_to_ai, build_default_agent, get_time, search_transactions, AIManagerStorage, read_ai_stream
+from fincord_chatbot_api.ai_manager import send_message_to_ai, build_default_agent, build_simplest_agent, get_time, search_transactions, AIManagerStorage, read_ai_stream
 from fincord_chatbot_api.type_manager import PendingSyncTransactions, AgentContextSchema, JobResult
 
 if TYPE_CHECKING:
@@ -37,10 +39,14 @@ def run_api():
         @asynccontextmanager
         async def lifespan(app: FastAPI):
                 app.state.qdrant_client = await create_default_qdrant_client(collection_name=VectorStoreManagerStorage.collection_name)
-                app.state.agent = build_default_agent(
+                app.state.chatbot_agent = build_default_agent(
                         context_schema=AgentContextSchema,
                         tools=[get_time, search_transactions],
-                        system_prompt=AIManagerStorage.system_prompt
+                        system_prompt=AIManagerStorage.chatbot_ai_system_prompt
+                )
+                app.state.general_agent = build_simplest_agent(
+                        google_model="gemini-3.5-flash",
+                        system_prompt=AIManagerStorage.general_ai_system_prompt,
                 )
                 yield
                 await app.state.qdrant_client.close()
@@ -48,8 +54,11 @@ def run_api():
         def get_qdrant_client(request: Request) -> SkipJsonSchema[AsyncQdrantClient]:
                 return request.app.state.qdrant_client
 
-        def get_agent(request: Request) -> SkipJsonSchema[CompiledStateGraph[AgentState[Any], DataclassInstance, InputAgentState, OutputAgentState[Any]]]:
-                return request.app.state.agent
+        def get_chatbot_agent(request: Request) -> SkipJsonSchema[CompiledStateGraph[AgentState[Any], DataclassInstance, InputAgentState, OutputAgentState[Any]]]:
+                return request.app.state.chatbot_agent
+
+        def get_general_agent(request: Request) -> SkipJsonSchema[RunnableSerializable[LanguageModelInput, str]]:
+                return request.app.state.general_agent
 
 
         # ? Setup API
@@ -62,7 +71,15 @@ def run_api():
         job_ids: dict[UUID, JobResult] = {}
 
         # ? Create function to handle task
-        async def add_task(job_id: UUID, message: str, user_id: int, pending_data: list[PendingSyncTransactions], qdrant_client: SkipJsonSchema[AsyncQdrantClient], agent: SkipJsonSchema[CompiledStateGraph[AgentState[Any], DataclassInstance, InputAgentState, OutputAgentState[Any]]]) -> None:
+        async def add_task(
+                        job_id: UUID,
+                        message: str,
+                        user_id: int,
+                        pending_data: list[PendingSyncTransactions],
+                        qdrant_client: SkipJsonSchema[AsyncQdrantClient],
+                        chatbot_agent: SkipJsonSchema[CompiledStateGraph[AgentState[Any], DataclassInstance, InputAgentState, OutputAgentState[Any]]],
+                        general_agent: SkipJsonSchema[RunnableSerializable[LanguageModelInput, str]]
+                ) -> None:
                 # ? Add to job_ids
                 print("Create a JOB")
                 job_ids[job_id] = JobResult(
@@ -73,7 +90,13 @@ def run_api():
                 # ? Check the pending sync
                 try:
                         print("Update records to vector store")
-                        await update_records_data_to_vector_store(qdrant_client=qdrant_client, collection_name=VectorStoreManagerStorage.collection_name, embeddings=VectorStoreManagerStorage.embeddings, user_id=user_id, pending_transaction=pending_data)
+                        await update_records_data_to_vector_store(qdrant_client=qdrant_client,
+                                collection_name=VectorStoreManagerStorage.collection_name,
+                                embeddings=VectorStoreManagerStorage.embeddings,
+                                user_id=user_id,
+                                pending_transaction=pending_data,
+                                general_agent=general_agent
+                        )
                 except Exception as e:
                         print(f"There's an error when trying to update vector store. Error: {e}")
                         job_ids[job_id].status = "error"
@@ -84,7 +107,7 @@ def run_api():
                 # ? Talk to AI
                 try:
                         print("Talk to AI")
-                        response = send_message_to_ai(context_schema=AgentContextSchema(qdrant_client=qdrant_client, user_id=user_id), agent=agent, message=message)
+                        response = send_message_to_ai(context_schema=AgentContextSchema(qdrant_client=qdrant_client, user_id=user_id), agent=chatbot_agent, message=message)
                         await read_ai_stream(response=response, job_ids=job_ids, job_id=job_id)
                 
                 except Exception as e:
@@ -118,7 +141,13 @@ def run_api():
         
         # ? Create route to ask AI
         @app.post("/ask")
-        async def ask(tx: AskRequestDataType, background_tasks: BackgroundTasks, credentials: HTTPAuthorizationCredentials = Depends(security), qdrant_client: SkipJsonSchema[AsyncQdrantClient] = Depends(get_qdrant_client), agent: SkipJsonSchema[CompiledStateGraph[AgentState[Any], DataclassInstance, InputAgentState, OutputAgentState[Any]]] = Depends(get_agent)):
+        async def ask(tx: AskRequestDataType,
+                background_tasks: BackgroundTasks,
+                credentials: HTTPAuthorizationCredentials = Depends(security),
+                qdrant_client: SkipJsonSchema[AsyncQdrantClient] = Depends(get_qdrant_client),
+                chatbot_agent: SkipJsonSchema[CompiledStateGraph[AgentState[Any], DataclassInstance, InputAgentState, OutputAgentState[Any]]] = Depends(get_chatbot_agent),
+                general_agent: SkipJsonSchema[RunnableSerializable[LanguageModelInput, str]] = Depends(get_general_agent)
+        ):
                 # ? Verify request is really from the server
                 print(f"KEY_ACCESS: {credentials.credentials}")
                 if not check_access(credentials.credentials):
@@ -133,13 +162,20 @@ def run_api():
                         pending_data=tx.pending_data,
                         message=tx.message,
                         qdrant_client=qdrant_client,
-                        agent=agent
+                        chatbot_agent=chatbot_agent,
+                        general_agent=general_agent
                 )
 
                 return {"job_id": job_id}
 
         @app.post("/ask/stream")
-        async def ask_stream(tx: AskRequestDataType, credentials: HTTPAuthorizationCredentials = Depends(security), qdrant_client: SkipJsonSchema[AsyncQdrantClient] = Depends(get_qdrant_client), agent: SkipJsonSchema[CompiledStateGraph[AgentState[Any], DataclassInstance, InputAgentState, OutputAgentState[Any]]] = Depends(get_agent)) -> StreamingResponse:
+        async def ask_stream(
+                tx: AskRequestDataType,
+                credentials: HTTPAuthorizationCredentials = Depends(security),
+                qdrant_client: SkipJsonSchema[AsyncQdrantClient] = Depends(get_qdrant_client),
+                agent: SkipJsonSchema[CompiledStateGraph[AgentState[Any], DataclassInstance, InputAgentState, OutputAgentState[Any]]] = Depends(get_chatbot_agent),
+                general_agent: SkipJsonSchema[RunnableSerializable[LanguageModelInput, str]] = Depends(get_general_agent)
+        ) -> StreamingResponse:
                 # ? Verify request is really from the server
                 print(f"KEY_ACCESS: {credentials.credentials}")
                 if not check_access(credentials.credentials):
@@ -148,7 +184,14 @@ def run_api():
                 # ? Check the pending sync
                 try:
                         print("Update records to vector store")
-                        await update_records_data_to_vector_store(qdrant_client=qdrant_client, collection_name=VectorStoreManagerStorage.collection_name, embeddings=VectorStoreManagerStorage.embeddings, user_id=tx.user_id, pending_transaction=tx.pending_data)
+                        await update_records_data_to_vector_store(
+                                qdrant_client=qdrant_client,
+                                collection_name=VectorStoreManagerStorage.collection_name,
+                                embeddings=VectorStoreManagerStorage.embeddings,
+                                user_id=tx.user_id,
+                                pending_transaction=tx.pending_data,
+                                general_agent=general_agent
+                        )
                 except Exception as e:
                         print(f"There's an error when trying to update vector store. Error: {e}")
                         raise HTTPException(status_code=500, detail="There's an error in server side")

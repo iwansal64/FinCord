@@ -36,6 +36,16 @@ class PendingSyncTransactions(BaseModel):
             return {k: v for k, v in data.items() if v is not None}
         return data
 
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "title": self.title,
+            "description": self.description,
+            "created_at": self.created_at.isoformat() if self.created_at else "",
+            "amount": self.amount,
+            "is_deleted": self.is_deleted
+        }
+
 
 # ? Create context schema
 @dataclass
