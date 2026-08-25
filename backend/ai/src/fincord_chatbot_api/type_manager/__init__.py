@@ -5,6 +5,7 @@ from pydantic.json_schema import SkipJsonSchema
 from datetime import date, datetime
 from dataclasses import dataclass
 
+import httpx
 from typing import Literal, Any
 
 class PendingSyncTransactions(BaseModel):
@@ -51,6 +52,7 @@ class PendingSyncTransactions(BaseModel):
 @dataclass
 class AgentContextSchema:
     qdrant_client: SkipJsonSchema[AsyncQdrantClient]
+    httpx_client: SkipJsonSchema[httpx.AsyncClient]
     user_id: int
 
 

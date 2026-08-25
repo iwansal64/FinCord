@@ -3,12 +3,13 @@ from langchain_core.runnables.base import RunnableSerializable
 from langchain_core.language_models import LanguageModelInput
 from langgraph.graph.state import CompiledStateGraph
 
+import uvicorn
 from qdrant_client import AsyncQdrantClient
 from fastapi import FastAPI, HTTPException, Request, Depends, BackgroundTasks
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import StreamingResponse
-import uvicorn
 
+import httpx
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
 from pydantic.json_schema import SkipJsonSchema
@@ -17,7 +18,7 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid4, UUID
 
 from fincord_chatbot_api.vector_store_manager import update_records_data_to_vector_store, create_default_qdrant_client, VectorStoreManagerStorage
-from fincord_chatbot_api.ai_manager import send_message_to_ai, build_default_agent, build_simplest_agent, get_time, search_transactions, AIManagerStorage, read_ai_stream
+from fincord_chatbot_api.ai_manager import send_message_to_ai, build_default_agent, build_simplest_agent, get_time, search_transactions, create_transactions, AIManagerStorage, read_ai_stream
 from fincord_chatbot_api.type_manager import PendingSyncTransactions, AgentContextSchema, JobResult
 
 if TYPE_CHECKING:
@@ -35,13 +36,15 @@ class GetRequestDataType(BaseModel):
 
 
 def run_api():
+        
         # ? Create lifespan
         @asynccontextmanager
         async def lifespan(app: FastAPI):
                 app.state.qdrant_client = await create_default_qdrant_client(collection_name=VectorStoreManagerStorage.collection_name)
+                app.state.httpx_client = httpx.AsyncClient()
                 app.state.chatbot_agent = build_default_agent(
                         context_schema=AgentContextSchema,
-                        tools=[get_time, search_transactions],
+                        tools=[get_time, search_transactions, create_transactions],
                         system_prompt=AIManagerStorage.chatbot_ai_system_prompt
                 )
                 app.state.general_agent = build_simplest_agent(
@@ -50,15 +53,23 @@ def run_api():
                 )
                 yield
                 await app.state.qdrant_client.close()
+                await app.state.httpx_client.aclose()
 
         def get_qdrant_client(request: Request) -> SkipJsonSchema[AsyncQdrantClient]:
                 return request.app.state.qdrant_client
 
+        def get_httpx_client(request: Request) -> SkipJsonSchema[httpx.AsyncClient]:
+                return request.app.state.httpx_client
+
         def get_chatbot_agent(request: Request) -> SkipJsonSchema[CompiledStateGraph[AgentState[Any], DataclassInstance, InputAgentState, OutputAgentState[Any]]]:
                 return request.app.state.chatbot_agent
 
-        def get_general_agent(request: Request) -> SkipJsonSchema[RunnableSerializable[LanguageModelInput, str]]:
+        def get_general_agent(request: Request) -> SkipJsonSchema[RunnableSerializable[dict[str, Any], str]]:
                 return request.app.state.general_agent
+                
+                
+                
+                
 
 
         # ? Setup API
@@ -69,6 +80,12 @@ def run_api():
                 raise Exception("KEY_ACCESS environment doesn't exists!")
 
         job_ids: dict[UUID, JobResult] = {}
+        
+        
+        
+        
+        
+        
 
         # ? Create function to handle task
         async def add_task(
@@ -78,7 +95,8 @@ def run_api():
                         pending_data: list[PendingSyncTransactions],
                         qdrant_client: SkipJsonSchema[AsyncQdrantClient],
                         chatbot_agent: SkipJsonSchema[CompiledStateGraph[AgentState[Any], DataclassInstance, InputAgentState, OutputAgentState[Any]]],
-                        general_agent: SkipJsonSchema[RunnableSerializable[LanguageModelInput, str]]
+                        general_agent: SkipJsonSchema[RunnableSerializable[dict[str, Any], str]],
+                        httpx_client: SkipJsonSchema[httpx.AsyncClient]
                 ) -> None:
                 # ? Add to job_ids
                 print("Create a JOB")
@@ -107,7 +125,7 @@ def run_api():
                 # ? Talk to AI
                 try:
                         print("Talk to AI")
-                        response = send_message_to_ai(context_schema=AgentContextSchema(qdrant_client=qdrant_client, user_id=user_id), agent=chatbot_agent, message=message)
+                        response = send_message_to_ai(context_schema=AgentContextSchema(qdrant_client=qdrant_client, user_id=user_id, httpx_client=httpx_client), agent=chatbot_agent, message=message)
                         await read_ai_stream(response=response, job_ids=job_ids, job_id=job_id)
                 
                 except Exception as e:
@@ -116,8 +134,8 @@ def run_api():
                         job_ids[job_id].message = "There's an error when trying to get AI response"
                         return
                         
-        async def create_ai_response_stream(qdrant_client: AsyncQdrantClient, agent: SkipJsonSchema[CompiledStateGraph[AgentState[Any], DataclassInstance, InputAgentState, OutputAgentState[Any]]], message: str, user_id: int):
-                response = send_message_to_ai(context_schema=AgentContextSchema(qdrant_client=qdrant_client, user_id=user_id), agent=agent, message=message)
+        async def create_ai_response_stream(qdrant_client: AsyncQdrantClient, httpx_client: httpx.AsyncClient, agent: SkipJsonSchema[CompiledStateGraph[AgentState[Any], DataclassInstance, InputAgentState, OutputAgentState[Any]]], message: str, user_id: int):
+                response = send_message_to_ai(context_schema=AgentContextSchema(qdrant_client=qdrant_client, user_id=user_id, httpx_client=httpx_client), agent=agent, message=message)
                 async for chunk in response:
                         if chunk["type"] != "messages":
                                 continue
@@ -138,6 +156,12 @@ def run_api():
                 if not request_key_access or request_key_access != key_access:
                         return False
                 return True
+
+                
+                
+                
+                
+                
         
         # ? Create route to ask AI
         @app.post("/ask")
@@ -146,7 +170,8 @@ def run_api():
                 credentials: HTTPAuthorizationCredentials = Depends(security),
                 qdrant_client: SkipJsonSchema[AsyncQdrantClient] = Depends(get_qdrant_client),
                 chatbot_agent: SkipJsonSchema[CompiledStateGraph[AgentState[Any], DataclassInstance, InputAgentState, OutputAgentState[Any]]] = Depends(get_chatbot_agent),
-                general_agent: SkipJsonSchema[RunnableSerializable[LanguageModelInput, str]] = Depends(get_general_agent)
+                general_agent: SkipJsonSchema[RunnableSerializable[dict[str, Any], str]] = Depends(get_general_agent),
+                httpx_client: SkipJsonSchema[httpx.AsyncClient] = Depends(get_httpx_client)
         ):
                 # ? Verify request is really from the server
                 print(f"KEY_ACCESS: {credentials.credentials}")
@@ -163,7 +188,8 @@ def run_api():
                         message=tx.message,
                         qdrant_client=qdrant_client,
                         chatbot_agent=chatbot_agent,
-                        general_agent=general_agent
+                        general_agent=general_agent,
+                        httpx_client=httpx_client
                 )
 
                 return {"job_id": job_id}
@@ -174,7 +200,8 @@ def run_api():
                 credentials: HTTPAuthorizationCredentials = Depends(security),
                 qdrant_client: SkipJsonSchema[AsyncQdrantClient] = Depends(get_qdrant_client),
                 agent: SkipJsonSchema[CompiledStateGraph[AgentState[Any], DataclassInstance, InputAgentState, OutputAgentState[Any]]] = Depends(get_chatbot_agent),
-                general_agent: SkipJsonSchema[RunnableSerializable[LanguageModelInput, str]] = Depends(get_general_agent)
+                general_agent: SkipJsonSchema[RunnableSerializable[dict[str, Any], str]] = Depends(get_general_agent),
+                httpx_client: SkipJsonSchema[httpx.AsyncClient] = Depends(get_httpx_client)
         ) -> StreamingResponse:
                 # ? Verify request is really from the server
                 print(f"KEY_ACCESS: {credentials.credentials}")
@@ -197,7 +224,7 @@ def run_api():
                         raise HTTPException(status_code=500, detail="There's an error in server side")
 
                 return StreamingResponse(
-                        create_ai_response_stream(qdrant_client=qdrant_client, agent=agent, message=tx.message, user_id=tx.user_id),
+                        create_ai_response_stream(qdrant_client=qdrant_client, agent=agent, message=tx.message, user_id=tx.user_id, httpx_client=httpx_client),
                         media_type="text/event-stream",
                         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
                 )

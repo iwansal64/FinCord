@@ -12,10 +12,13 @@ from google.genai.types import AutomaticFunctionCallingConfig
 from qdrant_client import models
 from qdrant_client.conversions.common_types import QueryResponse
 
+import httpx
+import asyncio
 from typing import Any, TYPE_CHECKING
 from collections.abc import AsyncIterator
 from datetime import datetime
 from uuid import UUID
+from os import getenv
 
 from fincord_chatbot_api.vector_store_manager import VectorStoreManagerStorage
 from fincord_chatbot_api.type_manager import AgentContextSchema, JobResult
@@ -73,6 +76,38 @@ async def search_transactions(runtime: ToolRuntime[AgentContextSchema], query: s
     print("Query done!")
 
     return "\n\n".join([document.payload['content'] for document in resulted_documents.points if document.payload])
+
+
+@tool
+async def create_transactions(runtime: ToolRuntime[AgentContextSchema], title: str, description: str, amount: int) -> str | None:
+    """This function is used to create transaction's record. Returns a string if there's error containing error message, returns None if there's no error"""
+    try:
+        # ? Get user id
+        user_id = runtime.context.user_id
+
+        # ? Send request to the main server
+        rust_server_url = getenv("RUST_SERVER_BASE_URL")
+        key_access_token = getenv("KEY_ACCESS")
+
+        httpx_client = runtime.context.httpx_client
+        response = await httpx_client.post(
+            url=f"{rust_server_url}/ai/records",
+            json={
+                "user_id": user_id,
+                "title": title,
+                "description": description,
+                "amount": amount,
+            },
+            headers={"Authorization": f"Bearer {key_access_token}"},
+            timeout=10.0,
+        )
+
+        response.raise_for_status()
+
+        # ? Send data to server with access key
+    except Exception as e:
+        return str(e)
+
 
 # ? Utility functions
 def send_message_to_ai(context_schema: DataclassInstance,agent: CompiledStateGraph[AgentState[Any], DataclassInstance, InputAgentState, OutputAgentState[Any]], message: str) -> AsyncIterator[dict[str, Any] | Any]:

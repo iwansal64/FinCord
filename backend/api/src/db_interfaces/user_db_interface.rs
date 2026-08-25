@@ -83,3 +83,8 @@ pub async fn verify_user_by_req(req: HttpRequest, db: &DatabaseConnection) -> Ve
 
         VerificationResult::Verified(user_data)
 }
+
+pub fn verify_ai_bearer_token(token: &str) -> bool {
+        let correct_token = std::env::var("KEY_ACCESS").unwrap();
+        token == correct_token
+}

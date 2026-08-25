@@ -12,6 +12,7 @@ use sea_orm::DatabaseConnection;
 use crate::{
         initializer::initialize_requester,
         routes::{
+                ai::records::create_transaction_records_for_ai_endpoint,
                 loggeduser::{
                         chat::chat_with_ai,
                         records::{
@@ -72,6 +73,7 @@ async fn main() -> std::io::Result<()> {
                         .service(get_transaction_records_endpoint)
                         .service(create_transaction_records_endpoint)
                         .service(chat_with_ai)
+                        .service(create_transaction_records_for_ai_endpoint)
         })
         .bind(("0.0.0.0", 8080))?
         .run()
